@@ -1487,7 +1487,7 @@ Copy
 const SUPABASE_URL = localStorage.getItem('sb_url') || '';
 const SUPABASE_KEY = localStorage.getItem('sb_key') || '';
  
-let supabase = null;
+let supabaseClient = null;
 let currentUser = null;
 let currentCouple = 1;
 let currentLang = 'en';
@@ -1526,8 +1526,8 @@ function initSupabase() {
   const key = localStorage.getItem('sb_key');
   if (url && key && window.supabase) {
     try {
-      supabase = window.supabase.createClient(url, key);
-    } catch(e) { supabase = null; }
+      supabaseClient = window.supabase.createClient(url, key);
+    } catch(e) { supabaseClient = null; }
   }
 }
  
@@ -2005,9 +2005,9 @@ async function loadWishes(coupleId) {
   const list = document.getElementById('wishes-list');
   list.innerHTML = '<p style="color:var(--text-light);font-style:italic;text-align:center">Loading wishes…</p>';
   let loaded = [];
-  if (supabase) {
+  if (supabaseClient) {
     try {
-      const { data } = await supabase.from('wishes').select('*').eq('couple_id', coupleId).order('created_at', { ascending: false });
+      const { data } = await supabaseClient.from('wishes').select('*').eq('couple_id', coupleId).order('created_at', { ascending: false });
       if (data) {
         wishes[coupleId] = data;
         saveLocalData();
@@ -2045,9 +2045,9 @@ async function submitWish() {
     created_at: new Date().toISOString(),
     date: new Date().toISOString()
   };
-  if (supabase) {
+  if (supabaseClient) {
     try {
-      const { error } = await supabase.from('wishes').insert([wish]);
+      const { error } = await supabaseClient.from('wishes').insert([wish]);
       if (error) throw error;
     } catch(e) { showNotif('Saved locally (configure Supabase for full persistence)'); }
   }
@@ -2196,7 +2196,7 @@ function saveSupabaseConfig() {
   localStorage.setItem('sb_url', url);
   localStorage.setItem('sb_key', key);
   initSupabase();
-  document.getElementById('sb-status').textContent = supabase ? '✓ Connected to Supabase successfully' : '⚠ Could not connect — check your credentials';
+  document.getElementById('sb-status').textContent = supabaseClient ? '✓ Connected to Supabase successfully' : '⚠ Could not connect — check your credentials';
 }
  
 // ===== UTILS =====
