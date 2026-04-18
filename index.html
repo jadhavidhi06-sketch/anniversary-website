@@ -1686,12 +1686,34 @@ function loadLocalData() {
   if (storedMedia) media = JSON.parse(storedMedia);
   if (storedSongs) songs = JSON.parse(storedSongs);
   if (storedWishes) wishes = JSON.parse(storedWishes);
+  sanitizeStoredLocalAssets();
 }
- 
+
 function saveLocalData() {
   localStorage.setItem('couple_media', JSON.stringify(media));
   localStorage.setItem('couple_songs', JSON.stringify(songs));
   localStorage.setItem('couple_wishes', JSON.stringify(wishes));
+}
+
+function sanitizeStoredLocalAssets() {
+  let changed = false;
+  [1, 2].forEach(id => {
+    const beforeMediaLen = (media[id] || []).length;
+    const beforeSongsLen = (songs[id] || []).length;
+    media[id] = (media[id] || []).filter(item => typeof item?.url === 'string' && !item.url.startsWith('blob:'));
+    songs[id] = (songs[id] || []).filter(item => typeof item?.url === 'string' && !item.url.startsWith('blob:'));
+    if (media[id].length !== beforeMediaLen || songs[id].length !== beforeSongsLen) changed = true;
+  });
+  if (changed) saveLocalData();
+}
+
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error('Unable to read file'));
+    reader.readAsDataURL(file);
+  });
 }
  
 // ===== PARTICLES =====
@@ -2388,29 +2410,33 @@ function setAdminCouple(type, id, btn) {
   }
 }
  
-function handleMediaUpload(event) {
+async function handleMediaUpload(event) {
   const files = Array.from(event.target.files);
-  files.forEach(file => {
-    const url = URL.createObjectURL(file);
-    const isVideo = file.type.startsWith('video/');
-    const item = { url, type: isVideo ? 'video' : 'image', name: file.name, local: true };
-    if (!media[adminMediaCouple]) media[adminMediaCouple] = [];
-    media[adminMediaCouple].push(item);
-  });
+  for (const file of files) {
+    try {
+      const url = await readFileAsDataUrl(file);
+      const isVideo = file.type.startsWith('video/');
+      const item = { url, type: isVideo ? 'video' : 'image', name: file.name, local: true };
+      if (!media[adminMediaCouple]) media[adminMediaCouple] = [];
+      media[adminMediaCouple].push(item);
+    } catch(e) {}
+  }
   saveLocalData();
   renderAdminThumbs();
   showNotif(files.length + ' file(s) uploaded locally ✓');
   event.target.value = '';
 }
- 
-function handleMusicUpload(event) {
+
+async function handleMusicUpload(event) {
   const files = Array.from(event.target.files);
-  files.forEach(file => {
-    const url = URL.createObjectURL(file);
-    const item = { url, name: file.name.replace(/\.[^.]+$/, ''), local: true };
-    if (!songs[adminMusicCouple]) songs[adminMusicCouple] = [];
-    songs[adminMusicCouple].push(item);
-  });
+  for (const file of files) {
+    try {
+      const url = await readFileAsDataUrl(file);
+      const item = { url, name: file.name.replace(/\.[^.]+$/, ''), local: true };
+      if (!songs[adminMusicCouple]) songs[adminMusicCouple] = [];
+      songs[adminMusicCouple].push(item);
+    } catch(e) {}
+  }
   saveLocalData();
   renderSongLists();
   showNotif(files.length + ' song(s) added ✓');
