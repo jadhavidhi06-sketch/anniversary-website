@@ -1,70 +1,3 @@
-
-
-I want your assistance in building a beautiful, personalized web application as a 25th wedding anniversary gift for my parents and a 10th anniversary gift for my aunt (Mama) and uncle (Mami). The website should be warm, welcoming, romantic, and deeply emotional, not cliché. Website Concept and User
-
-pasted
-
-7:40 PM
-
-Reading frontend design skill
-Reading frontend design skill
-This is a beautiful and meaningful project! I'll build you a complete, stunning anniversary website. Given the complexity (full-stack with auth, database, file uploads, admin panel), I'll create the complete frontend as a single polished HTML artifact, plus a separate guide for the Supabase backend setup.
-
-Let me build this now — warm, cinematic, deeply emotional.
-
-Now I'll build the complete website. This will be a large, beautiful single-page application with all the features described.
-
-
-Complete anniversary website - full HTML/CSS/JS with Supabase integration
-Complete anniversary website - full HTML/CSS/JS with Supabase integration
-
-Complete anniversary website - full HTML/CSS/JS with Supabase integration
-index.html
-Done
-Now let me create the Supabase setup guide:
-
-
-Created a file, read a file
-Created a file, read a file
-
-Complete Supabase backend setup guide with SQL schema
-SETUP_GUIDE.md
-
-Presented 2 files
-Done
-Here's your complete anniversary website! 🌸 Here's everything that's built in:
-
-The website has all of this:
-
-Cinematic intro — floating petals, warm amber glow, fade-up animations, ornamental typography in Playfair Display and Cormorant Garamond
-Full Marathi/English toggle — every word on every screen switches instantly
-Login / Register — admin pre-seeded with admin@anniversary.love / vidhi2816; new visitors can create their own accounts
-Couple selection — two elegant cards (Baba & Aai · 25 years, Mama & Mami · 10 years)
-Hero slideshow per couple — auto-cycling, with a cinematic dark overlay and romantic verse (both languages)
-Photo/video gallery — masonry grid with lightbox; placeholder until you upload
-Background music player — fixed bar with play/pause, next/prev, volume; separate playlists per couple
-Wishing Box — everyone's wishes appear with their name and date; messages persist locally and sync to Supabase when configured
-Admin panel — upload photos/videos for either couple, upload songs, moderate/delete wishes, configure Supabase
-Fully mobile-responsive throughout
-To make wishes permanent for all visitors, follow the SETUP_GUIDE.md — it walks you through a free Supabase + Vercel deployment in about 15 minutes. No coding required.
-
-This will be a beautiful gift. 💛
-
-
-Index
-Code · HTML 
-
-Setup guide
-Document · MD 
-
-Want to be notified when Claude responds?
-
-
-
-Claude is AI and can make mistakes. Please double-check responses.
-Index · HTML
-Copy
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1487,7 +1420,7 @@ Copy
 const SUPABASE_URL = localStorage.getItem('sb_url') || '';
 const SUPABASE_KEY = localStorage.getItem('sb_key') || '';
  
-let supabase = null;
+let supabaseClient = null;
 let currentUser = null;
 let currentCouple = 1;
 let currentLang = 'en';
@@ -1526,8 +1459,8 @@ function initSupabase() {
   const key = localStorage.getItem('sb_key');
   if (url && key && window.supabase) {
     try {
-      supabase = window.supabase.createClient(url, key);
-    } catch(e) { supabase = null; }
+      supabaseClient = window.supabase.createClient(url, key);
+    } catch(e) { supabaseClient = null; }
   }
 }
  
@@ -2005,9 +1938,9 @@ async function loadWishes(coupleId) {
   const list = document.getElementById('wishes-list');
   list.innerHTML = '<p style="color:var(--text-light);font-style:italic;text-align:center">Loading wishes…</p>';
   let loaded = [];
-  if (supabase) {
+  if (supabaseClient) {
     try {
-      const { data } = await supabase.from('wishes').select('*').eq('couple_id', coupleId).order('created_at', { ascending: false });
+      const { data } = await supabaseClient.from('wishes').select('*').eq('couple_id', coupleId).order('created_at', { ascending: false });
       if (data) {
         wishes[coupleId] = data;
         saveLocalData();
@@ -2045,9 +1978,9 @@ async function submitWish() {
     created_at: new Date().toISOString(),
     date: new Date().toISOString()
   };
-  if (supabase) {
+  if (supabaseClient) {
     try {
-      const { error } = await supabase.from('wishes').insert([wish]);
+      const { error } = await supabaseClient.from('wishes').insert([wish]);
       if (error) throw error;
     } catch(e) { showNotif('Saved locally (configure Supabase for full persistence)'); }
   }
@@ -2196,7 +2129,7 @@ function saveSupabaseConfig() {
   localStorage.setItem('sb_url', url);
   localStorage.setItem('sb_key', key);
   initSupabase();
-  document.getElementById('sb-status').textContent = supabase ? '✓ Connected to Supabase successfully' : '⚠ Could not connect — check your credentials';
+  document.getElementById('sb-status').textContent = supabaseClient ? '✓ Connected to Supabase successfully' : '⚠ Could not connect — check your credentials';
 }
  
 // ===== UTILS =====
