@@ -819,6 +819,39 @@
     max-width: 800px;
     margin: 0 auto;
   }
+
+  .wish-feature-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.85rem;
+    margin: 0 auto 1.35rem;
+  }
+  .wish-feature-card {
+    background: rgba(45,18,0,0.45);
+    border: 1px solid rgba(201,146,42,0.2);
+    padding: 0.95rem 0.85rem;
+    min-height: 128px;
+  }
+  .wish-feature-card .meta {
+    color: var(--warm-gold);
+    font-size: 0.75rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 0.45rem;
+  }
+  .wish-feature-card h3 {
+    color: var(--warm-cream);
+    font-family: var(--font-display);
+    font-size: 1.04rem;
+    font-style: italic;
+    line-height: 1.25;
+  }
+  .wish-feature-card p {
+    color: var(--blush);
+    font-size: 0.93rem;
+    line-height: 1.5;
+    margin-top: 0.4rem;
+  }
  
   .wish-form {
     background: rgba(45,18,0,0.6);
@@ -1179,10 +1212,12 @@
     .top-bar { flex-wrap: wrap; gap: 0.75rem; }
     .top-bar-right { width: 100%; justify-content: space-between; }
     .page-nav { padding: 0.85rem 0.75rem; }
+    .page-nav { padding-top: calc(0.85rem + env(safe-area-inset-top)); }
     .page-nav-links { gap: 0.75rem; }
     .page-nav-links a { font-size: 0.74rem; }
     .hero-split { grid-template-columns: 1fr; }
-    .hero-media-pane { min-height: 58vh; }
+    .hero-media-pane { min-height: 66vh; }
+    .couple-hero { min-height: 100svh; padding-top: calc(54px + env(safe-area-inset-top)); height: auto; }
     .hero-quote-pane {
       min-height: 42vh;
       border-left: none;
@@ -1196,6 +1231,27 @@
     .intro-poem-box { padding: 0.8rem 0.9rem; }
     .intro-poem-line.en { font-size: 0.95rem; }
     .intro-poem-line.mr { font-size: 0.9rem; }
+    .slide .slide-main {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      object-position: center;
+      padding: 0.35rem;
+      filter: brightness(0.83) saturate(1);
+    }
+    .slide .slide-bg { display: none; }
+    .slide video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      object-position: center;
+      padding: 0.35rem;
+      filter: brightness(0.8) saturate(0.95);
+      background: #0d0500;
+    }
+    .slideshow-overlay { background: linear-gradient(to bottom, rgba(13,5,0,0.18) 0%, rgba(13,5,0,0.05) 50%, rgba(13,5,0,0.45) 100%); }
+    .wish-feature-grid { grid-template-columns: 1fr; gap: 0.7rem; margin-bottom: 1rem; }
+    .wish-feature-card { min-height: auto; }
   }
  
   /* Fade animations */
@@ -1433,6 +1489,7 @@
       <div class="section-divider"></div>
       <p style="color:var(--blush);font-style:italic;font-size:1rem;margin-top:0.5rem" id="wishes-desc">Your words become part of their story.</p>
     </div>
+    <div class="wish-feature-grid" id="wish-feature-grid"></div>
     <div class="wish-form">
       <textarea id="wish-input" placeholder="Write your wish, memory, or message here…"></textarea>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.75rem">
@@ -1728,6 +1785,26 @@ const HOME_POEMS = [
   {
     en: 'Today their journey shines, not by chance, but by choosing each other every day.',
     mr: 'आज त्यांचा प्रवास उजळतो, योगायोगाने नव्हे तर रोज एकमेकांना निवडल्यामुळे.'
+  },
+  {
+    en: 'Some marriages are made by families, and perfected by kindness.',
+    mr: 'काही विवाह कुटुंबे जुळवतात, आणि त्यांना परिपूर्णता मिळते ती आपुलकीने.'
+  },
+  {
+    en: 'Their love did not rush—it rooted, blossomed, and stayed.',
+    mr: 'त्यांचे प्रेम घाईत वाढले नाही—ते रुजले, फुलले आणि टिकले.'
+  },
+  {
+    en: 'In the language of daily life, they wrote an epic of care.',
+    mr: 'दैनंदिन जीवनाच्या भाषेत त्यांनी जपण्याचा एक महाकाव्य लिहिले.'
+  },
+  {
+    en: 'What began with rituals became a forever made of friendship.',
+    mr: 'विधींनी सुरू झालेले नाते मैत्रीने भरलेले कायमपण बनले.'
+  },
+  {
+    en: 'Year after year, their home became a lamp for everyone around them.',
+    mr: 'वर्षानुवर्षे त्यांचे घर आजूबाजूच्या प्रत्येकासाठी एक दीप बनले.'
   }
 ];
  
@@ -1770,6 +1847,7 @@ function applyStrings() {
   if (wi) wi.placeholder = s.wish_placeholder;
   setText('wish-btn', s.wish_btn, true);
   updateHomePoem();
+  renderWishFeatures();
   if (document.getElementById('couple-page').classList.contains('active')) {
     renderCurrentCouplePoem();
     buildGallery(currentCouple);
@@ -1938,6 +2016,26 @@ const COUPLE_POEMS = {
     {
       en: 'They held hands through ordinary days so gently that even pain learned to become hope.',
       mr: 'साध्या दिवसांत त्यांनी हात इतक्या हळुवार धरले की वेदनाही हळूहळू आशेत बदलली.'
+    },
+    {
+      en: 'They turned responsibilities into rituals of care, and rituals into timeless love.',
+      mr: 'जबाबदाऱ्यांना त्यांनी जपण्याच्या सवयी दिल्या, आणि त्या सवयींना कालातीत प्रेम.'
+    },
+    {
+      en: 'Their story is not loud, yet it echoes in every heart that watches them.',
+      mr: 'त्यांची कथा गाजावाजा करत नाही, पण त्यांना पाहणाऱ्या प्रत्येक मनात घुमते.'
+    },
+    {
+      en: 'In every sunrise they found gratitude, in every sunset they found peace.',
+      mr: 'प्रत्येक सूर्योदयात त्यांनी कृतज्ञता शोधली, आणि प्रत्येक सूर्यास्तात शांतता.'
+    },
+    {
+      en: 'Love for them became simple: stand together, speak gently, forgive quickly.',
+      mr: 'त्यांच्यासाठी प्रेम साधे झाले: एकत्र उभे राहा, हळुवार बोला, लवकर माफ करा.'
+    },
+    {
+      en: 'Even after decades, they still look at each other like a cherished blessing.',
+      mr: 'दशकांनंतरही ते एकमेकांकडे जपलेल्या आशीर्वादासारखे पाहतात.'
     }
   ],
   2: [
@@ -1960,7 +2058,40 @@ const COUPLE_POEMS = {
     {
       en: 'Their smiles carry years of patience, and their eyes still sparkle with day-one wonder.',
       mr: 'त्यांच्या हास्यात अनेक वर्षांचा संयम आहे, आणि नजरेत आजही पहिल्या दिवसाचीच चमक आहे.'
+    },
+    {
+      en: 'They grew not by perfect days, but by choosing each other on imperfect ones.',
+      mr: 'परिपूर्ण दिवसांनी नव्हे, तर अपूर्ण दिवसांतही एकमेकांना निवडून ते वाढले.'
+    },
+    {
+      en: 'Their laughter became the music of home, their trust the rhythm.',
+      mr: 'त्यांचे हास्य घराचे संगीत बनले, आणि विश्वास त्याचा ताल.'
+    },
+    {
+      en: 'Every small compromise became a bridge, every bridge became closeness.',
+      mr: 'प्रत्येक छोट्या तडजोडीने एक पूल बांधला, आणि प्रत्येक पुलाने जवळीक वाढवली.'
+    },
+    {
+      en: 'They carry tenderness in ordinary hours—and that is their greatest romance.',
+      mr: 'ते साध्या क्षणांतही कोमलता जपतात—तेच त्यांचे सर्वात सुंदर प्रेम.'
+    },
+    {
+      en: 'A decade later, they still celebrate each other like a beautiful surprise.',
+      mr: 'दशकानंतरही ते एकमेकांना सुंदर आश्चर्यासारखे साजरे करतात.'
     }
+  ]
+};
+
+const WISH_FEATURES = {
+  en: [
+    { meta: 'Feature', title: 'Memory Wall', text: 'Share one special memory and let it shine beside all blessings.' },
+    { meta: 'Feature', title: 'Blessing Sparkles', text: 'Every wish triggers a tiny celebration to honor your loving words.' },
+    { meta: 'Feature', title: 'Forever Keepsake', text: 'Messages stay as a digital keepsake for the couples to revisit anytime.' }
+  ],
+  mr: [
+    { meta: 'वैशिष्ट्य', title: 'आठवणींची भिंत', text: 'एक खास आठवण लिहा आणि ती सर्व शुभेच्छांसोबत झळकू द्या.' },
+    { meta: 'वैशिष्ट्य', title: 'आशीर्वाद फुलोरा', text: 'प्रत्येक शुभेच्छेनंतर छोटा आनंदोत्सव दिसेल, तुमच्या शब्दांचा सन्मान म्हणून.' },
+    { meta: 'वैशिष्ट्य', title: 'कायमची जपणूक', text: 'ही संदेश-खूण डिजिटल स्वरूपात जपली जाईल, पुन्हा पुन्हा वाचण्यासाठी.' }
   ]
 };
 
@@ -2003,6 +2134,7 @@ function openCouplePage(id) {
   showScreen('couple-page');
   buildSlideshow(id);
   buildGallery(id);
+  renderWishFeatures();
   loadWishes(id);
   startMusic(id);
   const s = STRINGS[currentLang];
@@ -2071,7 +2203,7 @@ function startSlideshow(container) {
     slides[currentSlide].classList.remove('active');
     currentSlide = (currentSlide + 1) % slides.length;
     slides[currentSlide].classList.add('active');
-  }, 5000);
+  }, 3600);
 }
  
 function clearSlideshow() {
@@ -2454,7 +2586,20 @@ function startCouplePoemRotation() {
     if (lines.length < 2) return;
     currentPoemIndex = (currentPoemIndex + 1) % lines.length;
     renderCurrentCouplePoem();
-  }, 6200);
+  }, 9000);
+}
+
+function renderWishFeatures() {
+  const wrap = document.getElementById('wish-feature-grid');
+  if (!wrap) return;
+  const items = WISH_FEATURES[currentLang] || WISH_FEATURES.en;
+  wrap.innerHTML = items.map(item => `
+    <article class="wish-feature-card">
+      <div class="meta">${escHtml(item.meta)}</div>
+      <h3>${escHtml(item.title)}</h3>
+      <p>${escHtml(item.text)}</p>
+    </article>
+  `).join('');
 }
 
 function stopCouplePoemRotation() {
