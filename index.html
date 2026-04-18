@@ -1592,25 +1592,13 @@
       </div>
     </div>
  
-    <!-- Supabase Setup Guide -->
+    <!-- Supabase Backend Status -->
     <div class="admin-card" style="grid-column:1/-1">
-      <h3>⚙️ Backend Setup — Important</h3>
+      <h3>⚙️ Backend Status</h3>
       <p style="color:var(--blush);font-size:0.95rem;line-height:1.7;font-style:italic;margin-bottom:0.75rem">
-        To enable permanent storage of wishes, photos, and music, configure Supabase below.
-        Without this, data is saved locally in your browser only (for preview/demo).
+        This site now uses Supabase only. Wishes, media, songs, and user records are stored in backend tables and storage buckets.
       </p>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
-        <div class="form-group">
-          <label>Supabase URL</label>
-          <input type="text" id="sb-url" placeholder="https://xxxx.supabase.co" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(201,146,42,0.2);color:var(--warm-cream);padding:0.6rem;outline:none;">
-        </div>
-        <div class="form-group">
-          <label>Supabase Anon Key</label>
-          <input type="text" id="sb-key" placeholder="eyJhbGci..." style="width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(201,146,42,0.2);color:var(--warm-cream);padding:0.6rem;outline:none;">
-        </div>
-      </div>
-      <button class="admin-upload-btn" style="width:auto;padding:0.6rem 1.5rem;margin-top:0.5rem" onclick="saveSupabaseConfig()">Save & Connect</button>
-      <p id="sb-status" style="color:var(--warm-gold);font-size:0.85rem;margin-top:0.5rem"></p>
+      <p id="sb-status" style="color:var(--warm-gold);font-size:0.85rem;margin-top:0.5rem">Checking backend connection…</p>
     </div>
  
   </div>
@@ -1627,8 +1615,8 @@
  
 <script>
 // ===== CONFIG & STATE =====
-const SUPABASE_URL = localStorage.getItem('sb_url') || '';
-const SUPABASE_KEY = localStorage.getItem('sb_key') || '';
+const SUPABASE_URL = 'https://nhaslaxwmilqlmnsazcr.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5oYXNsYXh3bWlscWxtbnNhemNyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY1MTExNDcsImV4cCI6MjA5MjA4NzE0N30.Jd-gBxWOeFhRTKa1DLTuTv0ePggD4Fhho0wEmBP3CtQ';
  
 let supabaseClient = null;
 let currentUser = null;
@@ -1647,21 +1635,15 @@ let poemTimer = null;
 let homePoemTimer = null;
 let currentPoemIndex = 0;
 let currentHomePoemIndex = 0;
- 
-// Demo admin credentials (also stored in localStorage for persistence)
-const ADMIN_USER = { email: 'admin@anniversary.love', password: 'vidhi2816', name: 'Admin', isAdmin: true, createdAt: '2024-01-01T00:00:00.000Z' };
+const ADMIN_EMAILS = ['admin@anniversary.love'];
  
 // ===== INIT =====
-window.addEventListener('load', () => {
+window.addEventListener('load', async () => {
   initParticles();
   initSupabase();
-  loadLocalData();
-  // Pre-populate admin if not exists
-  let users = JSON.parse(localStorage.getItem('users') || '[]');
-  if (!users.find(u => u.email === ADMIN_USER.email)) {
-    users.push(ADMIN_USER);
-    localStorage.setItem('users', JSON.stringify(users));
-  }
+  clearLegacyLocalStorage();
+  await loadMediaAndSongs();
+  await bootstrapSession();
   setTimeout(() => {
     document.getElementById('loading-overlay').classList.add('hidden');
   }, 800);
@@ -1670,50 +1652,49 @@ window.addEventListener('load', () => {
 });
  
 function initSupabase() {
-  const url = localStorage.getItem('sb_url');
-  const key = localStorage.getItem('sb_key');
-  if (url && key && window.supabase) {
+  if (window.supabase) {
     try {
-      supabaseClient = window.supabase.createClient(url, key);
-    } catch(e) { supabaseClient = null; }
+      supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+      setText('sb-status', '✓ Supabase connected');
+    } catch(e) {
+      supabaseClient = null;
+      setText('sb-status', '⚠ Supabase connection failed');
+    }
   }
 }
- 
-function loadLocalData() {
-  const storedMedia = localStorage.getItem('couple_media');
-  const storedSongs = localStorage.getItem('couple_songs');
-  const storedWishes = localStorage.getItem('couple_wishes');
-  if (storedMedia) media = JSON.parse(storedMedia);
-  if (storedSongs) songs = JSON.parse(storedSongs);
-  if (storedWishes) wishes = JSON.parse(storedWishes);
-  sanitizeStoredLocalAssets();
+
+function clearLegacyLocalStorage() {
+  try {
+    localStorage.clear();
+    sessionStorage.clear();
+  } catch (e) {}
 }
 
-function saveLocalData() {
-  localStorage.setItem('couple_media', JSON.stringify(media));
-  localStorage.setItem('couple_songs', JSON.stringify(songs));
-  localStorage.setItem('couple_wishes', JSON.stringify(wishes));
+async function bootstrapSession() {
+  if (!supabaseClient) return;
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  if (session?.user) {
+    currentUser = {
+      id: session.user.id,
+      email: session.user.email,
+      name: session.user.user_metadata?.name || session.user.email,
+      isAdmin: ADMIN_EMAILS.includes(session.user.email)
+    };
+    afterLogin();
+  }
 }
 
-function sanitizeStoredLocalAssets() {
-  let changed = false;
-  [1, 2].forEach(id => {
-    const beforeMediaLen = (media[id] || []).length;
-    const beforeSongsLen = (songs[id] || []).length;
-    media[id] = (media[id] || []).filter(item => typeof item?.url === 'string' && !item.url.startsWith('blob:'));
-    songs[id] = (songs[id] || []).filter(item => typeof item?.url === 'string' && !item.url.startsWith('blob:'));
-    if (media[id].length !== beforeMediaLen || songs[id].length !== beforeSongsLen) changed = true;
-  });
-  if (changed) saveLocalData();
+function bucketPath(folder, file) {
+  const ext = file.name.includes('.') ? file.name.split('.').pop() : 'bin';
+  return `${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
 }
 
-function readFileAsDataUrl(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = () => reject(new Error('Unable to read file'));
-    reader.readAsDataURL(file);
-  });
+async function uploadToBucket(bucket, file, folder) {
+  const path = bucketPath(folder, file);
+  const { error } = await supabaseClient.storage.from(bucket).upload(path, file, { upsert: false });
+  if (error) throw error;
+  const { data } = supabaseClient.storage.from(bucket).getPublicUrl(path);
+  return { url: data.publicUrl, path };
 }
  
 // ===== PARTICLES =====
@@ -1895,10 +1876,6 @@ function showScreen(id) {
     loadAdminWishes(1, null);
     renderAdminThumbs();
     renderSongLists();
-    const urlEl = document.getElementById('sb-url');
-    const keyEl = document.getElementById('sb-key');
-    if (urlEl) urlEl.value = localStorage.getItem('sb_url') || '';
-    if (keyEl) keyEl.value = localStorage.getItem('sb_key') || '';
     renderRegisteredUsers();
   }
   if (id === 'couple-select') {
@@ -1935,31 +1912,48 @@ function setAuthMsg(msg, type) {
   el.className = 'auth-msg ' + (type || '');
 }
  
-function doLogin() {
+async function doLogin() {
   const email = document.getElementById('login-email').value.trim();
   const pass = document.getElementById('login-pass').value;
   if (!email || !pass) { setAuthMsg('Please fill in all fields', 'error'); return; }
-  const users = JSON.parse(localStorage.getItem('users') || '[]');
-  const user = users.find(u => u.email === email && u.password === pass);
-  if (!user) { setAuthMsg('Invalid email or password', 'error'); return; }
-  currentUser = user;
-  localStorage.setItem('current_user', JSON.stringify(user));
+  if (!supabaseClient) { setAuthMsg('Backend is not connected', 'error'); return; }
+  const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password: pass });
+  if (error || !data?.user) { setAuthMsg(error?.message || 'Invalid email or password', 'error'); return; }
+  currentUser = {
+    id: data.user.id,
+    email: data.user.email,
+    name: data.user.user_metadata?.name || email,
+    isAdmin: ADMIN_EMAILS.includes(data.user.email)
+  };
   afterLogin();
 }
  
-function doRegister() {
+async function doRegister() {
   const name = document.getElementById('reg-name').value.trim();
   const email = document.getElementById('reg-email').value.trim();
   const pass = document.getElementById('reg-pass').value;
   if (!name || !email || !pass) { setAuthMsg('Please fill in all fields', 'error'); return; }
   if (pass.length < 6) { setAuthMsg('Password must be at least 6 characters', 'error'); return; }
-  let users = JSON.parse(localStorage.getItem('users') || '[]');
-  if (users.find(u => u.email === email)) { setAuthMsg('Email already registered', 'error'); return; }
-  const user = { email, password: pass, name, isAdmin: false, createdAt: new Date().toISOString() };
-  users.push(user);
-  localStorage.setItem('users', JSON.stringify(users));
-  currentUser = user;
-  localStorage.setItem('current_user', JSON.stringify(user));
+  if (!supabaseClient) { setAuthMsg('Backend is not connected', 'error'); return; }
+  const { data, error } = await supabaseClient.auth.signUp({
+    email,
+    password: pass,
+    options: { data: { name } }
+  });
+  if (error || !data?.user) { setAuthMsg(error?.message || 'Could not register user', 'error'); return; }
+  currentUser = {
+    id: data.user.id,
+    email: data.user.email,
+    name,
+    isAdmin: ADMIN_EMAILS.includes(data.user.email)
+  };
+  await supabaseClient.from('profiles').upsert([{
+    id: data.user.id,
+    name,
+    email,
+    is_admin: currentUser.isAdmin,
+    created_at: new Date().toISOString()
+  }], { onConflict: 'id' });
   setAuthMsg('Account created! Welcome, ' + name, 'success');
   setTimeout(afterLogin, 800);
 }
@@ -1977,21 +1971,13 @@ function afterLogin() {
   }, 100);
 }
  
-function doLogout() {
+async function doLogout() {
   currentUser = null;
-  localStorage.removeItem('current_user');
+  if (supabaseClient) await supabaseClient.auth.signOut();
   stopMusic();
   clearSlideshow();
   showScreen('intro');
 }
- 
-// Check for saved session on load
-window.addEventListener('DOMContentLoaded', () => {
-  const saved = localStorage.getItem('current_user');
-  if (saved) {
-    currentUser = JSON.parse(saved);
-  }
-});
  
 // ===== COUPLE PAGE =====
 const COUPLE_DATA = {
@@ -2336,20 +2322,20 @@ function stopMusic() {
 async function loadWishes(coupleId) {
   const list = document.getElementById('wishes-list');
   list.innerHTML = '<p style="color:var(--text-light);font-style:italic;text-align:center">Loading wishes…</p>';
-  let loaded = [];
-  if (supabaseClient) {
-    try {
-      const { data } = await supabaseClient.from('wishes').select('*').eq('couple_id', coupleId).order('created_at', { ascending: false });
-      if (data) {
-        wishes[coupleId] = data;
-        saveLocalData();
-        loaded = data;
-      }
-    } catch(e) {}
-  } else {
-    loaded = wishes[coupleId] || [];
+  if (!supabaseClient) {
+    renderWishes([], list);
+    showNotif('Backend not connected');
+    return;
   }
-  renderWishes(loaded, list);
+  try {
+    const { data, error } = await supabaseClient.from('wishes').select('*').eq('couple_id', coupleId).order('created_at', { ascending: false });
+    if (error) throw error;
+    wishes[coupleId] = data || [];
+  } catch (e) {
+    wishes[coupleId] = [];
+    showNotif('Could not load wishes from backend');
+  }
+  renderWishes(wishes[coupleId], list);
 }
  
 function renderWishes(list, container) {
@@ -2377,18 +2363,16 @@ async function submitWish() {
     created_at: new Date().toISOString(),
     date: new Date().toISOString()
   };
-  if (supabaseClient) {
-    try {
-      const { error } = await supabaseClient.from('wishes').insert([wish]);
-      if (error) throw error;
-    } catch(e) { showNotif('Saved locally (configure Supabase for full persistence)'); }
+  if (!supabaseClient) { showNotif('Backend is not connected'); return; }
+  try {
+    const { error } = await supabaseClient.from('wishes').insert([wish]);
+    if (error) throw error;
+  } catch (e) {
+    showNotif('Could not save wish to backend');
+    return;
   }
-  if (!wishes[currentCouple]) wishes[currentCouple] = [];
-  wishes[currentCouple].unshift(wish);
-  saveLocalData();
   input.value = '';
-  const list = document.getElementById('wishes-list');
-  renderWishes(wishes[currentCouple], list);
+  await loadWishes(currentCouple);
   burstConfetti(36);
   showNotif('Your wish has been sent ❤');
 }
@@ -2412,37 +2396,74 @@ function setAdminCouple(type, id, btn) {
  
 async function handleMediaUpload(event) {
   const files = Array.from(event.target.files);
+  if (!supabaseClient) { showNotif('Backend is not connected'); return; }
   for (const file of files) {
     try {
-      const url = await readFileAsDataUrl(file);
       const isVideo = file.type.startsWith('video/');
-      const item = { url, type: isVideo ? 'video' : 'image', name: file.name, local: true };
+      const { url, path } = await uploadToBucket('anniversary-media', file, `couple-${adminMediaCouple}`);
+      const item = { url, path, type: isVideo ? 'video' : 'image', name: file.name };
+      const { error } = await supabaseClient.from('media_assets').insert([{
+        couple_id: adminMediaCouple,
+        name: item.name,
+        url: item.url,
+        file_path: item.path,
+        type: item.type,
+        created_by: currentUser?.id || null
+      }]);
+      if (error) throw error;
       if (!media[adminMediaCouple]) media[adminMediaCouple] = [];
       media[adminMediaCouple].push(item);
-    } catch(e) {}
+    } catch(e) {
+      console.error(e);
+      showNotif(`Failed to upload ${file.name}`);
+    }
   }
-  saveLocalData();
   renderAdminThumbs();
-  showNotif(files.length + ' file(s) uploaded locally ✓');
+  if (currentCouple === adminMediaCouple) buildSlideshow(currentCouple);
+  showNotif(files.length + ' file(s) uploaded to backend ✓');
   event.target.value = '';
 }
 
 async function handleMusicUpload(event) {
   const files = Array.from(event.target.files);
+  if (!supabaseClient) { showNotif('Backend is not connected'); return; }
   for (const file of files) {
     try {
-      const url = await readFileAsDataUrl(file);
-      const item = { url, name: file.name.replace(/\.[^.]+$/, ''), local: true };
+      const { url, path } = await uploadToBucket('anniversary-music', file, `couple-${adminMusicCouple}`);
+      const item = { url, path, name: file.name.replace(/\.[^.]+$/, '') };
+      const { error } = await supabaseClient.from('songs').insert([{
+        couple_id: adminMusicCouple,
+        name: item.name,
+        url: item.url,
+        file_path: item.path,
+        created_by: currentUser?.id || null
+      }]);
+      if (error) throw error;
       if (!songs[adminMusicCouple]) songs[adminMusicCouple] = [];
       songs[adminMusicCouple].push(item);
-    } catch(e) {}
+    } catch(e) {
+      console.error(e);
+      showNotif(`Failed to upload ${file.name}`);
+    }
   }
-  saveLocalData();
   renderSongLists();
-  showNotif(files.length + ' song(s) added ✓');
+  if (currentCouple === adminMusicCouple) startMusic(currentCouple);
+  showNotif(files.length + ' song(s) uploaded to backend ✓');
   event.target.value = '';
 }
- 
+
+async function loadMediaAndSongs() {
+  if (!supabaseClient) return;
+  for (const id of [1, 2]) {
+    const [{ data: mediaData }, { data: songData }] = await Promise.all([
+      supabaseClient.from('media_assets').select('*').eq('couple_id', id).order('created_at', { ascending: true }),
+      supabaseClient.from('songs').select('*').eq('couple_id', id).order('created_at', { ascending: true })
+    ]);
+    media[id] = (mediaData || []).map(item => ({ url: item.url, type: item.type || 'image', name: item.name, path: item.file_path, id: item.id }));
+    songs[id] = (songData || []).map(item => ({ url: item.url, name: item.name, path: item.file_path, id: item.id }));
+  }
+}
+
 function renderAdminThumbs() {
   [1, 2].forEach(id => {
     const container = document.getElementById('media-thumbs-' + id);
@@ -2456,14 +2477,18 @@ function renderAdminThumbs() {
     `).join('');
   });
 }
- 
-function deleteMedia(coupleId, idx) {
+
+async function deleteMedia(coupleId, idx) {
+  const item = media[coupleId]?.[idx];
+  if (!item || !supabaseClient) return;
+  if (item.id) await supabaseClient.from('media_assets').delete().eq('id', item.id);
+  if (item.path) await supabaseClient.storage.from('anniversary-media').remove([item.path]);
   media[coupleId].splice(idx, 1);
-  saveLocalData();
   renderAdminThumbs();
+  if (currentCouple === coupleId) buildSlideshow(currentCouple);
   showNotif('Media removed');
 }
- 
+
 function renderSongLists() {
   [1, 2].forEach(id => {
     const container = document.getElementById('song-list-' + id);
@@ -2482,28 +2507,34 @@ function renderSongLists() {
     `).join('');
   });
 }
- 
+
 function previewSong(url) {
   const a = document.getElementById('bg-audio');
   a.src = url;
   a.volume = 0.4;
   a.play();
 }
- 
-function deleteSong(coupleId, idx) {
+
+async function deleteSong(coupleId, idx) {
+  const song = songs[coupleId]?.[idx];
+  if (!song || !supabaseClient) return;
+  if (song.id) await supabaseClient.from('songs').delete().eq('id', song.id);
+  if (song.path) await supabaseClient.storage.from('anniversary-music').remove([song.path]);
   songs[coupleId].splice(idx, 1);
-  saveLocalData();
   renderSongLists();
   showNotif('Song removed');
 }
- 
-function loadAdminWishes(coupleId, btn) {
+
+async function loadAdminWishes(coupleId, btn) {
   if (btn) {
     btn.closest('.admin-couple-select').querySelectorAll('button').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
   }
+  if (!supabaseClient) return;
   const container = document.getElementById('admin-wishes-list');
-  const w = wishes[coupleId] || [];
+  const { data } = await supabaseClient.from('wishes').select('*').eq('couple_id', coupleId).order('created_at', { ascending: false });
+  wishes[coupleId] = data || [];
+  const w = wishes[coupleId];
   if (w.length === 0) {
     container.innerHTML = '<p style="color:var(--text-light);font-size:0.85rem;font-style:italic">No wishes yet</p>';
     return;
@@ -2519,13 +2550,12 @@ function loadAdminWishes(coupleId, btn) {
   `).join('');
 }
 
-function renderRegisteredUsers() {
+async function renderRegisteredUsers() {
   const container = document.getElementById('registered-users-list');
   const countEl = document.getElementById('registered-count');
-  if (!container || !countEl) return;
-  const users = JSON.parse(localStorage.getItem('users') || '[]')
-    .map(u => ({ ...u, createdAt: u.createdAt || '—' }))
-    .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+  if (!container || !countEl || !supabaseClient) return;
+  const { data } = await supabaseClient.from('profiles').select('*').order('created_at', { ascending: false });
+  const users = data || [];
   countEl.textContent = `Total: ${users.length}`;
   if (users.length === 0) {
     container.innerHTML = '<p style="color:var(--text-light);font-size:0.85rem;font-style:italic">No users found yet.</p>';
@@ -2533,29 +2563,2711 @@ function renderRegisteredUsers() {
   }
   container.innerHTML = users.map(user => `
     <div class="registered-item">
-      <div class="name">${escHtml(user.name || 'Unnamed User')} ${user.isAdmin ? '<span style="color:var(--warm-gold);font-size:0.72rem">(Admin)</span>' : ''}</div>
+      <div class="name">${escHtml(user.name || 'Unnamed User')} ${user.is_admin ? '<span style="color:var(--warm-gold);font-size:0.72rem">(Admin)</span>' : ''}</div>
       <div class="meta">${escHtml(user.email || 'No email')}</div>
-      <div class="meta">Joined: ${user.createdAt === '—' ? 'Earlier account' : formatDate(user.createdAt)}</div>
+      <div class="meta">Joined: ${formatDate(user.created_at)}</div>
+    </div>
+  `).join('');
+}
+
+async function deleteWish(coupleId, idx) {
+  const wish = wishes[coupleId]?.[idx];
+  if (!wish || !supabaseClient) return;
+  if (wish.id) await supabaseClient.from('wishes').delete().eq('id', wish.id);
+  wishes[coupleId].splice(idx, 1);
+  loadAdminWishes(coupleId, null);
+  if (currentCouple === coupleId) loadWishes(coupleId);
+  showNotif('Wish deleted');
+}
+
+ 
+// ===== UTILS =====
+function showNotif(msg) {
+  const n = document.getElementById('notification');
+  n.textContent = msg;
+  n.classList.add('show');
+  setTimeout(() => n.classList.remove('show'), 3000);
+}
+ 
+function escHtml(str) {
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+ 
+function formatDate(d) {
+  if (!d) return '';
+  try { return new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }); }
+  catch { return ''; }
+}
+ 
+function initIntersectionObserver() {
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+  }, { threshold: 0.1 });
+  document.querySelectorAll('.fade-in').forEach(el => obs.observe(el));
+}
+
+function updateHomePoem() {
+  const pair = HOME_POEMS[currentHomePoemIndex % HOME_POEMS.length];
+  setText('home-poem-en', pair.en);
+  setText('home-poem-mr', pair.mr);
+}
+
+function startHomePoemRotation() {
+  updateHomePoem();
+  clearInterval(homePoemTimer);
+  homePoemTimer = setInterval(() => {
+    currentHomePoemIndex = (currentHomePoemIndex + 1) % HOME_POEMS.length;
+    updateHomePoem();
+  }, 5500);
+}
+
+function renderCurrentCouplePoem() {
+  const verse = document.getElementById('hero-verse');
+  const lines = COUPLE_POEMS[currentCouple] || [];
+  if (!verse || lines.length === 0) return;
+  const pair = lines[currentPoemIndex % lines.length];
+  verse.innerHTML = `<div class="poem-en">${escHtml(pair.en)}</div><div class="poem-mr">${escHtml(pair.mr)}</div>`;
+}
+
+function startCouplePoemRotation() {
+  clearInterval(poemTimer);
+  poemTimer = setInterval(() => {
+    const lines = COUPLE_POEMS[currentCouple] || [];
+    if (lines.length < 2) return;
+    currentPoemIndex = (currentPoemIndex + 1) % lines.length;
+    renderCurrentCouplePoem();
+  }, 9000);
+}
+
+function renderWishFeatures() {
+  const wrap = document.getElementById('wish-feature-grid');
+  if (!wrap) return;
+  const items = WISH_FEATURES[currentLang] || WISH_FEATURES.en;
+  wrap.innerHTML = items.map(item => `
+    <article class="wish-feature-card">
+      <div class="meta">${escHtml(item.meta)}</div>
+      <h3>${escHtml(item.title)}</h3>
+      <p>${escHtml(item.text)}</p>
+    </article>
+  `).join('');
+}
+
+function stopCouplePoemRotation() {
+  clearInterval(poemTimer);
+}
+
+function burstConfetti(count = 48) {
+  const layer = document.getElementById('confetti-layer');
+  if (!layer) return;
+  const colors = ['#e8b84b', '#c9922a', '#f2ddd5', '#b5705a', '#f9f1e3'];
+  for (let i = 0; i < count; i++) {
+    const piece = document.createElement('span');
+    const isHeart = Math.random() < 0.42;
+    piece.className = 'confetti' + (isHeart ? ' heart' : '');
+    piece.style.left = (Math.random() * 100) + 'vw';
+    if (isHeart) {
+      piece.textContent = Math.random() < 0.6 ? '❤' : '💖';
+      piece.style.color = ['#ff7a9e', '#ff5d8f', '#ffc0cb', '#ffd8e8'][Math.floor(Math.random() * 4)];
+    } else {
+      piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+    }
+    piece.style.animationDuration = (2.5 + Math.random() * 2.7) + 's';
+    piece.style.animationDelay = (Math.random() * 0.5) + 's';
+    piece.style.transform = `rotate(${Math.random() * 180}deg)`;
+    if (!isHeart) {
+      piece.style.width = (6 + Math.random() * 5) + 'px';
+      piece.style.height = (10 + Math.random() * 12) + 'px';
+    }
+    layer.appendChild(piece);
+    setTimeout(() => piece.remove(), 5600);
+  }
+}
+</script>
+ 
+</body>
+</html>
+ <!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Celebrations of Love | प्रेमाचा उत्सव</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Noto+Sans+Devanagari:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --warm-deep: #1a0a00;
+    --warm-dark: #2d1200;
+    --warm-brown: #6b3a1f;
+    --warm-gold: #c9922a;
+    --warm-amber: #e8b84b;
+    --warm-cream: #f9f1e3;
+    --warm-ivory: #fdf8f0;
+    --blush: #e8c4b8;
+    --rose: #b5705a;
+    --soft-pink: #f2ddd5;
+    --text-dark: #1a0a00;
+    --text-mid: #5c3220;
+    --text-light: #9e7060;
+    --font-display: 'Playfair Display', serif;
+    --font-body: 'Cormorant Garamond', serif;
+    --font-devanagari: 'Noto Sans Devanagari', sans-serif;
+    --transition: all 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+ 
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+ 
+  body {
+    background: var(--warm-deep);
+    color: var(--warm-cream);
+    font-family: var(--font-body);
+    overflow-x: hidden;
+    min-height: 100vh;
+  }
+ 
+  /* ===== SCREENS ===== */
+  .screen {
+    display: none;
+    min-height: 100vh;
+    position: relative;
+  }
+  .screen.active { display: flex; flex-direction: column; }
+ 
+  /* ===== PARTICLES / BG ===== */
+  .particle-bg {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 0;
+    overflow: hidden;
+  }
+  .particle-bg::before {
+    content: '';
+    position: absolute;
+    top: -50%; left: -50%;
+    width: 200%; height: 200%;
+    background: radial-gradient(ellipse at 30% 40%, rgba(201,146,42,0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 70% 60%, rgba(181,112,90,0.06) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 20%, rgba(232,184,75,0.05) 0%, transparent 40%);
+    animation: float-bg 20s ease-in-out infinite alternate;
+  }
+  @keyframes float-bg {
+    0% { transform: translate(0,0) rotate(0deg); }
+    100% { transform: translate(-2%, 2%) rotate(1deg); }
+  }
+ 
+  .petal {
+    position: absolute;
+    width: 6px; height: 10px;
+    background: rgba(232,184,75,0.15);
+    border-radius: 50% 0 50% 0;
+    animation: fall linear infinite;
+  }
+  @keyframes fall {
+    0% { transform: translateY(-20px) rotate(0deg); opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 0.5; }
+    100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+  }
+ 
+  /* ===== INTRO SCREEN ===== */
+  #intro {
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    background: radial-gradient(ellipse at center, #2d1200 0%, #0d0500 100%);
+  }
+ 
+  .intro-content {
+    position: relative;
+    z-index: 2;
+    padding: 2rem;
+    max-width: 700px;
+  }
+ 
+  .intro-divider {
+    width: 60px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--warm-gold), transparent);
+    margin: 1.5rem auto;
+    animation: grow-line 2s ease forwards;
+    transform-origin: center;
+  }
+  @keyframes grow-line { from { width: 0; opacity: 0; } to { width: 60px; opacity: 1; } }
+ 
+  .intro-ornament {
+    font-size: 2rem;
+    color: var(--warm-gold);
+    opacity: 0;
+    animation: fade-up 1.5s ease 0.5s forwards;
+    letter-spacing: 0.3em;
+  }
+ 
+  .intro-title {
+    font-family: var(--font-display);
+    font-size: clamp(2.5rem, 8vw, 5rem);
+    font-weight: 400;
+    font-style: italic;
+    color: var(--warm-cream);
+    line-height: 1.1;
+    opacity: 0;
+    animation: fade-up 1.5s ease 0.8s forwards;
+    text-shadow: 0 0 60px rgba(201,146,42,0.3);
+  }
+ 
+  .intro-subtitle {
+    font-family: var(--font-devanagari);
+    font-size: clamp(1rem, 3vw, 1.4rem);
+    color: var(--warm-amber);
+    font-weight: 300;
+    letter-spacing: 0.1em;
+    opacity: 0;
+    animation: fade-up 1.5s ease 1.2s forwards;
+    margin-top: 0.5rem;
+  }
+ 
+  .intro-verse {
+    font-size: clamp(1rem, 2.5vw, 1.2rem);
+    font-style: italic;
+    color: var(--blush);
+    line-height: 1.8;
+    opacity: 0;
+    animation: fade-up 1.5s ease 1.6s forwards;
+    max-width: 500px;
+    margin: 0 auto;
+  }
+
+  .intro-poem-box {
+    margin: 1.4rem auto 0;
+    max-width: 640px;
+    padding: 1rem 1.25rem;
+    border: 1px solid rgba(201,146,42,0.25);
+    background: rgba(13,5,0,0.45);
+    backdrop-filter: blur(6px);
+  }
+  .intro-poem-line {
+    line-height: 1.65;
+    transition: opacity 0.8s ease;
+  }
+  .intro-poem-line.en { color: var(--warm-cream); font-size: 1.02rem; }
+  .intro-poem-line.mr { color: var(--warm-amber); font-family: var(--font-devanagari); font-size: 0.98rem; margin-top: 0.4rem; }
+ 
+  .intro-enter-btn {
+    margin-top: 2.5rem;
+    opacity: 0;
+    animation: fade-up 1.5s ease 2.2s forwards;
+  }
+ 
+  .lang-toggle {
+    display: inline-flex;
+    gap: 0;
+    border: 1px solid rgba(201,146,42,0.4);
+    border-radius: 50px;
+    overflow: hidden;
+    margin-bottom: 2rem;
+  }
+  .lang-toggle button {
+    background: transparent;
+    border: none;
+    color: var(--warm-amber);
+    padding: 0.5rem 1.5rem;
+    cursor: pointer;
+    font-family: var(--font-devanagari);
+    font-size: 0.9rem;
+    transition: var(--transition);
+  }
+  .lang-toggle button.active {
+    background: var(--warm-gold);
+    color: var(--warm-deep);
+  }
+ 
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+ 
+  .btn-primary {
+    display: inline-block;
+    padding: 0.85rem 2.5rem;
+    background: transparent;
+    border: 1px solid var(--warm-gold);
+    color: var(--warm-amber);
+    font-family: var(--font-body);
+    font-size: 1.1rem;
+    letter-spacing: 0.15em;
+    cursor: pointer;
+    transition: var(--transition);
+    text-transform: uppercase;
+    position: relative;
+    overflow: hidden;
+  }
+  .btn-primary::before {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%;
+    width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(201,146,42,0.2), transparent);
+    transition: left 0.5s ease;
+  }
+  .btn-primary:hover::before { left: 100%; }
+  .btn-primary:hover {
+    background: rgba(201,146,42,0.1);
+    color: var(--warm-cream);
+    box-shadow: 0 0 30px rgba(201,146,42,0.2);
+  }
+ 
+  /* ===== AUTH SCREEN ===== */
+  #auth {
+    justify-content: center;
+    align-items: center;
+    background: radial-gradient(ellipse at 30% 70%, #200d04 0%, #0d0500 100%);
+  }
+ 
+  .auth-card {
+    background: rgba(45,18,0,0.8);
+    border: 1px solid rgba(201,146,42,0.2);
+    backdrop-filter: blur(20px);
+    padding: 3rem;
+    width: 100%;
+    max-width: 420px;
+    margin: 1rem;
+    position: relative;
+    z-index: 2;
+  }
+ 
+  .auth-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    border: 1px solid rgba(201,146,42,0.1);
+    margin: 6px;
+    pointer-events: none;
+  }
+ 
+  .auth-logo {
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+  .auth-logo .ornament { color: var(--warm-gold); font-size: 1.5rem; letter-spacing: 0.3em; }
+  .auth-logo h2 {
+    font-family: var(--font-display);
+    font-size: 1.8rem;
+    font-weight: 400;
+    font-style: italic;
+    color: var(--warm-cream);
+    margin: 0.5rem 0;
+  }
+ 
+  .tab-switcher {
+    display: flex;
+    margin-bottom: 2rem;
+    border-bottom: 1px solid rgba(201,146,42,0.2);
+  }
+  .tab-switcher button {
+    flex: 1;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--text-light);
+    padding: 0.75rem;
+    cursor: pointer;
+    font-family: var(--font-body);
+    font-size: 1rem;
+    letter-spacing: 0.05em;
+    transition: var(--transition);
+    margin-bottom: -1px;
+  }
+  .tab-switcher button.active {
+    color: var(--warm-amber);
+    border-bottom-color: var(--warm-gold);
+  }
+ 
+  .form-group { margin-bottom: 1.25rem; }
+  .form-group label {
+    display: block;
+    color: var(--text-light);
+    font-size: 0.85rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 0.4rem;
+  }
+  .form-group input {
+    width: 100%;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(201,146,42,0.2);
+    color: var(--warm-cream);
+    padding: 0.75rem 1rem;
+    font-family: var(--font-body);
+    font-size: 1rem;
+    outline: none;
+    transition: var(--transition);
+  }
+  .form-group input:focus {
+    border-color: var(--warm-gold);
+    background: rgba(201,146,42,0.05);
+  }
+ 
+  .auth-btn {
+    width: 100%;
+    padding: 1rem;
+    background: linear-gradient(135deg, rgba(201,146,42,0.3), rgba(181,112,90,0.2));
+    border: 1px solid var(--warm-gold);
+    color: var(--warm-amber);
+    font-family: var(--font-body);
+    font-size: 1.1rem;
+    letter-spacing: 0.15em;
+    cursor: pointer;
+    transition: var(--transition);
+    text-transform: uppercase;
+    margin-top: 0.5rem;
+  }
+  .auth-btn:hover {
+    background: linear-gradient(135deg, rgba(201,146,42,0.5), rgba(181,112,90,0.3));
+    color: var(--warm-cream);
+  }
+ 
+  .auth-msg {
+    text-align: center;
+    margin-top: 1rem;
+    font-size: 0.9rem;
+    min-height: 1.2rem;
+  }
+  .auth-msg.error { color: #e07070; }
+  .auth-msg.success { color: #90d890; }
+ 
+  /* ===== COUPLE SELECT ===== */
+  #couple-select {
+    background: radial-gradient(ellipse at 60% 30%, #200d04 0%, #0d0500 100%);
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1rem;
+  }
+ 
+  .select-header {
+    text-align: center;
+    margin-bottom: 3rem;
+    position: relative;
+    z-index: 2;
+  }
+  .select-header .greeting {
+    color: var(--warm-amber);
+    font-size: 0.9rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+  }
+  .select-header h1 {
+    font-family: var(--font-display);
+    font-size: clamp(1.8rem, 5vw, 3rem);
+    font-weight: 400;
+    font-style: italic;
+    color: var(--warm-cream);
+  }
+ 
+  .couple-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 2rem;
+    max-width: 800px;
+    width: 100%;
+    position: relative;
+    z-index: 2;
+  }
+ 
+  .couple-card {
+    position: relative;
+    cursor: pointer;
+    overflow: hidden;
+    border: 1px solid rgba(201,146,42,0.2);
+    transition: var(--transition);
+    background: rgba(45,18,0,0.6);
+    padding: 2.5rem 2rem;
+    text-align: center;
+  }
+  .couple-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(201,146,42,0.05), rgba(181,112,90,0.05));
+    opacity: 0;
+    transition: var(--transition);
+  }
+  .couple-card:hover::before { opacity: 1; }
+  .couple-card:hover {
+    border-color: var(--warm-gold);
+    transform: translateY(-4px);
+    box-shadow: 0 20px 60px rgba(201,146,42,0.15);
+  }
+ 
+  .couple-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    display: block;
+    filter: hue-rotate(0deg) sepia(0.3);
+  }
+ 
+  .couple-years {
+    display: inline-block;
+    padding: 0.3rem 1.2rem;
+    border: 1px solid rgba(201,146,42,0.4);
+    color: var(--warm-gold);
+    font-size: 0.8rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+  }
+ 
+  .couple-name {
+    font-family: var(--font-display);
+    font-size: 1.8rem;
+    font-weight: 400;
+    font-style: italic;
+    color: var(--warm-cream);
+    margin-bottom: 0.75rem;
+  }
+ 
+  .couple-desc {
+    color: var(--blush);
+    font-size: 1rem;
+    font-style: italic;
+    line-height: 1.7;
+    opacity: 0.85;
+  }
+ 
+  .top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 2rem;
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    background: linear-gradient(to bottom, rgba(13,5,0,0.9) 0%, transparent 100%);
+  }
+  .top-bar .logo {
+    font-family: var(--font-display);
+    font-size: 1rem;
+    font-style: italic;
+    color: var(--warm-gold);
+    letter-spacing: 0.05em;
+  }
+  .top-bar-right { display: flex; gap: 1rem; align-items: center; }
+  .top-bar button {
+    background: none;
+    border: 1px solid rgba(201,146,42,0.3);
+    color: var(--warm-amber);
+    padding: 0.4rem 1rem;
+    cursor: pointer;
+    font-family: var(--font-body);
+    font-size: 0.85rem;
+    transition: var(--transition);
+  }
+  .top-bar button:hover { border-color: var(--warm-gold); color: var(--warm-cream); }
+ 
+  /* ===== COUPLE PAGE ===== */
+  #couple-page {
+    min-height: 100vh;
+    background: var(--warm-deep);
+  }
+ 
+  .couple-hero {
+    position: relative;
+    height: 100vh;
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+    overflow: hidden;
+  }
+ 
+  .couple-hero-bg {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center, #2d1200 0%, #080300 100%);
+    z-index: 0;
+  }
+ 
+  .hero-split {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    height: 100%;
+    display: grid;
+    grid-template-columns: minmax(56%, 1.7fr) minmax(44%, 1fr);
+  }
+
+  .hero-media-pane {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero-quote-pane {
+    position: relative;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: clamp(1rem, 3vw, 2.5rem);
+    background: linear-gradient(145deg, rgba(13,5,0,0.94), rgba(35,14,4,0.86));
+    border-left: 1px solid rgba(201,146,42,0.24);
+    text-align: left;
+  }
+
+  .slideshow {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+  }
+ 
+  .slide {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  .slide.active { opacity: 1; }
+  .slide img, .slide video {
+    width: 100%;
+    height: 100%;
+  }
+  .slide .slide-bg {
+    position: absolute;
+    inset: 0;
+    object-fit: cover;
+    filter: brightness(0.25) blur(10px) saturate(0.8);
+    transform: scale(1.1);
+  }
+  .slide .slide-main {
+    position: relative;
+    z-index: 1;
+    object-fit: contain;
+    filter: brightness(0.72) saturate(0.95);
+    padding: clamp(0.5rem, 2vw, 1.2rem);
+  }
+  .slide video {
+    object-fit: contain;
+    filter: brightness(0.62) saturate(0.85);
+    padding: clamp(0.5rem, 2vw, 1.2rem);
+  }
+ 
+  .slideshow-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, rgba(13,5,0,0.3) 0%, rgba(13,5,0,0.1) 40%, rgba(13,5,0,0.8) 100%);
+    z-index: 2;
+    pointer-events: none;
+  }
+ 
+  .couple-hero-content {
+    position: relative;
+    z-index: 4;
+    padding: 2rem;
+    background: linear-gradient(180deg, rgba(13,5,0,0.5), rgba(13,5,0,0.2));
+    border: 1px solid rgba(201,146,42,0.2);
+    width: min(95%, 580px);
+    backdrop-filter: blur(7px);
+  }
+ 
+  .couple-hero-years {
+    display: inline-block;
+    padding: 0.4rem 2rem;
+    border: 1px solid rgba(201,146,42,0.5);
+    color: var(--warm-gold);
+    font-size: 0.85rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    margin-bottom: 1.5rem;
+    animation: pulse-border 3s ease infinite;
+  }
+  @keyframes pulse-border {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(201,146,42,0); }
+    50% { box-shadow: 0 0 0 6px rgba(201,146,42,0.05); }
+  }
+ 
+  .couple-hero-title {
+    font-family: var(--font-display);
+    font-size: clamp(2.5rem, 8vw, 6rem);
+    font-weight: 400;
+    font-style: italic;
+    color: var(--warm-cream);
+    line-height: 1.05;
+    text-shadow: 0 2px 40px rgba(0,0,0,0.5);
+  }
+ 
+  .couple-hero-sub {
+    font-family: var(--font-devanagari);
+    font-size: clamp(0.9rem, 2.5vw, 1.2rem);
+    color: var(--warm-amber);
+    margin-top: 0.75rem;
+    letter-spacing: 0.05em;
+  }
+ 
+  .couple-hero-verse {
+    margin-top: 1.5rem;
+    color: var(--blush);
+    font-size: 1.1rem;
+    font-style: italic;
+    max-width: 500px;
+    margin-left: 0;
+    margin-right: 0;
+    line-height: 1.8;
+    opacity: 0.9;
+    min-height: 170px;
+  }
+  .couple-hero-verse .poem-en { color: var(--warm-cream); }
+  .couple-hero-verse .poem-mr {
+    margin-top: 0.65rem;
+    color: var(--warm-amber);
+    font-family: var(--font-devanagari);
+    font-size: 0.97em;
+  }
+ 
+  .scroll-hint {
+    position: absolute;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 3;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--warm-amber);
+    font-size: 0.75rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    opacity: 0.7;
+    animation: bounce 2s ease infinite;
+  }
+  .scroll-hint::after {
+    content: '';
+    width: 1px;
+    height: 40px;
+    background: linear-gradient(to bottom, var(--warm-gold), transparent);
+    display: block;
+  }
+  @keyframes bounce {
+    0%, 100% { transform: translateX(-50%) translateY(0); }
+    50% { transform: translateX(-50%) translateY(-8px); }
+  }
+ 
+  /* ===== GALLERY SECTION ===== */
+  .section {
+    padding: 5rem 2rem;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+ 
+  .section-header {
+    text-align: center;
+    margin-bottom: 3rem;
+  }
+  .section-header .label {
+    color: var(--warm-gold);
+    font-size: 0.8rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    margin-bottom: 0.75rem;
+  }
+  .section-header h2 {
+    font-family: var(--font-display);
+    font-size: clamp(1.8rem, 5vw, 3rem);
+    font-weight: 400;
+    font-style: italic;
+    color: var(--warm-cream);
+  }
+  .section-divider {
+    width: 60px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--warm-gold), transparent);
+    margin: 1.5rem auto;
+  }
+ 
+  .gallery-masonry {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1.2rem;
+  }
+ 
+  .gallery-item {
+    position: relative;
+    overflow: hidden;
+    min-height: 180px;
+    cursor: default;
+    background: linear-gradient(145deg, rgba(45,18,0,0.6), rgba(26,10,0,0.72));
+    border: 1px solid rgba(201,146,42,0.22);
+    padding: 1.1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    transition: transform 0.35s ease, border-color 0.35s ease;
+  }
+  .gallery-item:hover {
+    transform: translateY(-5px);
+    border-color: rgba(232,184,75,0.45);
+  }
+
+  .feature-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 1px solid rgba(232,184,75,0.35);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    color: var(--warm-amber);
+    background: rgba(13,5,0,0.45);
+  }
+  .feature-title {
+    color: var(--warm-cream);
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    font-style: italic;
+    line-height: 1.25;
+  }
+  .feature-text {
+    color: var(--blush);
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+ 
+  /* ===== AUDIO PLAYER ===== */
+  .music-bar {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    z-index: 200;
+    background: rgba(13,5,0,0.95);
+    border-top: 1px solid rgba(201,146,42,0.2);
+    padding: 0.75rem 2rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    backdrop-filter: blur(20px);
+  }
+  .music-info { flex: 1; min-width: 0; }
+  .music-info .song-name {
+    color: var(--warm-cream);
+    font-size: 0.95rem;
+    font-style: italic;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .music-info .song-label {
+    color: var(--warm-gold);
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+  .music-controls { display: flex; gap: 0.75rem; align-items: center; }
+  .music-controls button {
+    background: none;
+    border: 1px solid rgba(201,146,42,0.3);
+    color: var(--warm-amber);
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: var(--transition);
+    font-size: 0.8rem;
+  }
+  .music-controls button:hover {
+    border-color: var(--warm-gold);
+    background: rgba(201,146,42,0.1);
+  }
+  .music-controls button.play-btn {
+    width: 44px; height: 44px;
+    background: rgba(201,146,42,0.15);
+    border-color: var(--warm-gold);
+    font-size: 1rem;
+  }
+  .volume-slider {
+    width: 80px;
+    -webkit-appearance: none;
+    height: 2px;
+    background: rgba(201,146,42,0.3);
+    outline: none;
+  }
+  .volume-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: var(--warm-gold);
+    cursor: pointer;
+  }
+ 
+  /* ===== WISHING BOX ===== */
+  .wishing-section {
+    padding: 4rem 2rem 8rem;
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  .wish-feature-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.85rem;
+    margin: 0 auto 1.35rem;
+  }
+  .wish-feature-card {
+    background: rgba(45,18,0,0.45);
+    border: 1px solid rgba(201,146,42,0.2);
+    padding: 0.95rem 0.85rem;
+    min-height: 128px;
+  }
+  .wish-feature-card .meta {
+    color: var(--warm-gold);
+    font-size: 0.75rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 0.45rem;
+  }
+  .wish-feature-card h3 {
+    color: var(--warm-cream);
+    font-family: var(--font-display);
+    font-size: 1.04rem;
+    font-style: italic;
+    line-height: 1.25;
+  }
+  .wish-feature-card p {
+    color: var(--blush);
+    font-size: 0.93rem;
+    line-height: 1.5;
+    margin-top: 0.4rem;
+  }
+ 
+  .wish-form {
+    background: rgba(45,18,0,0.6);
+    border: 1px solid rgba(201,146,42,0.2);
+    padding: 2rem;
+    margin-bottom: 2.5rem;
+    position: relative;
+  }
+  .wish-form::before {
+    content: '';
+    position: absolute;
+    inset: 6px;
+    border: 1px solid rgba(201,146,42,0.08);
+    pointer-events: none;
+  }
+ 
+  .wish-form textarea {
+    width: 100%;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(201,146,42,0.2);
+    color: var(--warm-cream);
+    padding: 1rem;
+    font-family: var(--font-body);
+    font-size: 1.05rem;
+    font-style: italic;
+    resize: vertical;
+    min-height: 120px;
+    outline: none;
+    transition: var(--transition);
+    line-height: 1.7;
+  }
+  .wish-form textarea:focus { border-color: var(--warm-gold); }
+  .wish-form textarea::placeholder { color: var(--text-light); opacity: 0.6; }
+ 
+  .wish-submit {
+    margin-top: 1rem;
+    padding: 0.75rem 2rem;
+    background: transparent;
+    border: 1px solid var(--warm-gold);
+    color: var(--warm-amber);
+    font-family: var(--font-body);
+    font-size: 1rem;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    transition: var(--transition);
+    text-transform: uppercase;
+  }
+  .wish-submit:hover { background: rgba(201,146,42,0.1); color: var(--warm-cream); }
+ 
+  .wishes-list { display: flex; flex-direction: column; gap: 1.5rem; }
+ 
+  .wish-card {
+    background: rgba(45,18,0,0.4);
+    border: 1px solid rgba(201,146,42,0.12);
+    padding: 1.5rem 2rem;
+    position: relative;
+    animation: fade-up 0.5s ease forwards;
+  }
+  .wish-card::before {
+    content: '❝';
+    position: absolute;
+    top: 0.5rem; left: 1rem;
+    font-size: 2rem;
+    color: var(--warm-gold);
+    opacity: 0.2;
+    font-family: Georgia, serif;
+  }
+ 
+  .wish-author {
+    color: var(--warm-gold);
+    font-size: 0.85rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+  }
+  .wish-text {
+    color: var(--blush);
+    font-size: 1.05rem;
+    font-style: italic;
+    line-height: 1.7;
+  }
+  .wish-date {
+    color: var(--text-light);
+    font-size: 0.8rem;
+    margin-top: 0.75rem;
+    opacity: 0.6;
+  }
+ 
+  /* ===== ADMIN PANEL ===== */
+  #admin-panel {
+    background: var(--warm-deep);
+    padding: 5rem 2rem 2rem;
+  }
+ 
+  .admin-header {
+    text-align: center;
+    padding: 2rem;
+    border-bottom: 1px solid rgba(201,146,42,0.2);
+    margin-bottom: 2rem;
+  }
+  .admin-header h1 {
+    font-family: var(--font-display);
+    font-size: 2rem;
+    font-weight: 400;
+    font-style: italic;
+    color: var(--warm-cream);
+  }
+  .admin-header p { color: var(--warm-amber); font-size: 0.9rem; }
+ 
+  .admin-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+ 
+  .admin-card {
+    background: rgba(45,18,0,0.6);
+    border: 1px solid rgba(201,146,42,0.2);
+    padding: 1.5rem;
+  }
+  .admin-card h3 {
+    font-family: var(--font-display);
+    font-style: italic;
+    color: var(--warm-cream);
+    font-size: 1.2rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid rgba(201,146,42,0.15);
+  }
+ 
+  .admin-couple-select {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+  .admin-couple-select button {
+    flex: 1;
+    background: none;
+    border: 1px solid rgba(201,146,42,0.3);
+    color: var(--warm-amber);
+    padding: 0.5rem;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: var(--transition);
+  }
+  .admin-couple-select button.active {
+    background: rgba(201,146,42,0.15);
+    border-color: var(--warm-gold);
+    color: var(--warm-cream);
+  }
+ 
+  .upload-area {
+    border: 1px dashed rgba(201,146,42,0.3);
+    padding: 1.5rem;
+    text-align: center;
+    cursor: pointer;
+    transition: var(--transition);
+    position: relative;
+    margin-bottom: 1rem;
+  }
+  .upload-area:hover { border-color: var(--warm-gold); background: rgba(201,146,42,0.04); }
+  .upload-area input[type=file] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+  }
+  .upload-area p { color: var(--text-light); font-size: 0.9rem; }
+  .upload-area .upload-icon { color: var(--warm-gold); font-size: 1.5rem; margin-bottom: 0.5rem; }
+ 
+  .admin-upload-btn {
+    width: 100%;
+    padding: 0.75rem;
+    background: transparent;
+    border: 1px solid var(--warm-gold);
+    color: var(--warm-amber);
+    cursor: pointer;
+    font-family: var(--font-body);
+    font-size: 1rem;
+    transition: var(--transition);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+  .admin-upload-btn:hover { background: rgba(201,146,42,0.1); }
+ 
+  .media-thumbs {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.5rem;
+    margin-top: 1rem;
+  }
+  .media-thumb {
+    aspect-ratio: 1;
+    background: rgba(45,18,0,0.8);
+    border: 1px solid rgba(201,146,42,0.15);
+    overflow: hidden;
+    position: relative;
+  }
+  .media-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .media-thumb .thumb-del {
+    position: absolute;
+    top: 2px; right: 2px;
+    background: rgba(0,0,0,0.7);
+    border: none;
+    color: #e07070;
+    cursor: pointer;
+    width: 20px; height: 20px;
+    font-size: 10px;
+    display: none;
+  }
+  .media-thumb:hover .thumb-del { display: flex; align-items: center; justify-content: center; }
+ 
+  .song-list { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.75rem; }
+  .song-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    background: rgba(201,146,42,0.05);
+    border: 1px solid rgba(201,146,42,0.1);
+    font-size: 0.85rem;
+    color: var(--blush);
+  }
+  .song-item .play-song {
+    background: none;
+    border: none;
+    color: var(--warm-gold);
+    cursor: pointer;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+  }
+  .song-item .del-song {
+    background: none;
+    border: none;
+    color: #e07070;
+    cursor: pointer;
+    margin-left: auto;
+    font-size: 0.8rem;
+  }
+  .song-item .song-name-item { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+ 
+  .admin-wishes-list { display: flex; flex-direction: column; gap: 0.75rem; max-height: 300px; overflow-y: auto; }
+  .registered-list { display: flex; flex-direction: column; gap: 0.6rem; max-height: 320px; overflow-y: auto; }
+  .registered-item {
+    background: rgba(201,146,42,0.06);
+    border: 1px solid rgba(201,146,42,0.14);
+    padding: 0.7rem 0.8rem;
+  }
+  .registered-item .name { color: var(--warm-cream); font-size: 0.95rem; }
+  .registered-item .meta { color: var(--blush); font-size: 0.82rem; margin-top: 0.2rem; }
+  .admin-wish-item {
+    display: flex;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    background: rgba(201,146,42,0.04);
+    border: 1px solid rgba(201,146,42,0.1);
+    font-size: 0.85rem;
+  }
+  .admin-wish-item .wish-del {
+    background: none;
+    border: none;
+    color: #e07070;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+ 
+  .notification {
+    position: fixed;
+    bottom: 5rem;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: rgba(45,18,0,0.95);
+    border: 1px solid var(--warm-gold);
+    color: var(--warm-amber);
+    padding: 0.75rem 2rem;
+    font-size: 0.9rem;
+    letter-spacing: 0.05em;
+    opacity: 0;
+    transition: all 0.4s ease;
+    pointer-events: none;
+    z-index: 1000;
+    white-space: nowrap;
+  }
+  .notification.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  .confetti-layer {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 999;
+    overflow: hidden;
+  }
+  .confetti {
+    position: absolute;
+    top: -10vh;
+    width: 8px;
+    height: 16px;
+    opacity: 0.95;
+    animation: confetti-fall linear forwards;
+  }
+  @keyframes confetti-fall {
+    to { transform: translateY(115vh) rotate(720deg); opacity: 0.15; }
+  }
+  .confetti.heart {
+    width: auto;
+    height: auto;
+    background: transparent !important;
+    font-size: clamp(0.7rem, 1.3vw, 1rem);
+    line-height: 1;
+    text-shadow: 0 0 10px rgba(255, 150, 170, 0.45);
+  }
+ 
+  /* Lightbox */
+  .lightbox {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.95);
+    z-index: 500;
+    display: none;
+    align-items: center;
+    justify-content: center;
+  }
+  .lightbox.open { display: flex; }
+  .lightbox img, .lightbox video {
+    max-width: 90vw;
+    max-height: 90vh;
+    object-fit: contain;
+  }
+  .lightbox-close {
+    position: absolute;
+    top: 1.5rem; right: 1.5rem;
+    background: none;
+    border: 1px solid rgba(201,146,42,0.4);
+    color: var(--warm-amber);
+    width: 40px; height: 40px;
+    cursor: pointer;
+    font-size: 1.2rem;
+  }
+ 
+  /* ===== RESPONSIVE ===== */
+  @media (max-width: 600px) {
+    .auth-card { padding: 2rem 1.5rem; }
+    .couple-grid { grid-template-columns: 1fr; }
+    .section { padding: 3rem 1rem; }
+    .music-bar { padding: 0.5rem 1rem; gap: 0.5rem; }
+    .volume-slider { width: 50px; }
+    .admin-grid { grid-template-columns: 1fr; }
+    .gallery-masonry { grid-template-columns: repeat(1, 1fr); }
+    .media-thumbs { grid-template-columns: repeat(3, 1fr); }
+    .couple-hero-title { font-size: 2.5rem; }
+    .top-bar { flex-wrap: wrap; gap: 0.75rem; }
+    .top-bar-right { width: 100%; justify-content: space-between; }
+    .page-nav { padding: 0.85rem 0.75rem; }
+    .page-nav { padding-top: calc(0.85rem + env(safe-area-inset-top)); }
+    .page-nav-links { gap: 0.75rem; }
+    .page-nav-links a { font-size: 0.74rem; }
+    .hero-split { grid-template-columns: 1fr; }
+    .hero-media-pane { min-height: 66vh; }
+    .couple-hero { min-height: 100svh; padding-top: calc(54px + env(safe-area-inset-top)); height: auto; }
+    .hero-quote-pane {
+      min-height: 42vh;
+      border-left: none;
+      border-top: 1px solid rgba(201,146,42,0.24);
+      padding: 1.1rem 0.9rem 1.4rem;
+      text-align: center;
+    }
+    .couple-hero { justify-content: center; }
+    .couple-hero-content { padding: 1.1rem; max-width: 94vw; width: 100%; }
+    .couple-hero-verse { font-size: 0.95rem; line-height: 1.6; }
+    .intro-poem-box { padding: 0.8rem 0.9rem; }
+    .intro-poem-line.en { font-size: 0.95rem; }
+    .intro-poem-line.mr { font-size: 0.9rem; }
+    .slide .slide-main {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      object-position: center;
+      padding: 0.35rem;
+      filter: brightness(0.83) saturate(1);
+    }
+    .slide .slide-bg { display: none; }
+    .slide video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      object-position: center;
+      padding: 0.35rem;
+      filter: brightness(0.8) saturate(0.95);
+      background: #0d0500;
+    }
+    .slideshow-overlay { background: linear-gradient(to bottom, rgba(13,5,0,0.18) 0%, rgba(13,5,0,0.05) 50%, rgba(13,5,0,0.45) 100%); }
+    .wish-feature-grid { grid-template-columns: 1fr; gap: 0.7rem; margin-bottom: 1rem; }
+    .wish-feature-card { min-height: auto; }
+  }
+ 
+  /* Fade animations */
+  .fade-in { opacity: 0; transform: translateY(20px); transition: opacity 0.8s ease, transform 0.8s ease; }
+  .fade-in.visible { opacity: 1; transform: translateY(0); }
+ 
+  /* Loading */
+  .loading-overlay {
+    position: fixed;
+    inset: 0;
+    background: var(--warm-deep);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.5s ease;
+  }
+  .loading-overlay.hidden { opacity: 0; pointer-events: none; }
+  .loading-spinner {
+    width: 40px; height: 40px;
+    border: 1px solid rgba(201,146,42,0.2);
+    border-top-color: var(--warm-gold);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+ 
+  /* Admin nav tab */
+  .admin-nav-btn {
+    position: fixed;
+    bottom: 4.5rem;
+    right: 1rem;
+    background: rgba(45,18,0,0.95);
+    border: 1px solid var(--warm-gold);
+    color: var(--warm-amber);
+    padding: 0.5rem 1rem;
+    font-size: 0.8rem;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    z-index: 150;
+    display: none;
+    backdrop-filter: blur(10px);
+  }
+ 
+  .back-btn {
+    background: none;
+    border: 1px solid rgba(201,146,42,0.3);
+    color: var(--warm-amber);
+    padding: 0.4rem 1rem;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-family: var(--font-body);
+    transition: var(--transition);
+  }
+  .back-btn:hover { border-color: var(--warm-gold); color: var(--warm-cream); }
+ 
+  /* Couple page nav */
+  .page-nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 2rem;
+    background: linear-gradient(to bottom, rgba(13,5,0,0.9) 0%, transparent 100%);
+  }
+  .page-nav-links { display: flex; gap: 1.5rem; }
+  .page-nav-links a {
+    color: rgba(232,184,75,0.7);
+    text-decoration: none;
+    font-size: 0.85rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: var(--transition);
+  }
+  .page-nav-links a:hover { color: var(--warm-amber); }
+ 
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
+</style>
+</head>
+<body>
+ 
+<div class="loading-overlay" id="loading-overlay">
+  <div class="loading-spinner"></div>
+</div>
+ 
+<div class="particle-bg" id="particle-bg"></div>
+<div id="notification" class="notification"></div>
+<div id="confetti-layer" class="confetti-layer"></div>
+ 
+<!-- ===== INTRO SCREEN ===== -->
+<section class="screen active" id="intro">
+  <div class="intro-content">
+    <div class="lang-toggle" style="opacity:0;animation:fade-up 1.5s ease 0.2s forwards;">
+      <button class="active" onclick="setLang('en')" id="btn-en">English</button>
+      <button onclick="setLang('mr')" id="btn-mr">मराठी</button>
+    </div>
+    <div class="intro-ornament" id="intro-ornament">— ❧ —</div>
+    <div class="intro-divider"></div>
+    <h1 class="intro-title" id="intro-title">A Celebration<br><em>of Enduring Love</em></h1>
+    <p class="intro-subtitle" id="intro-subtitle">प्रेमाचा अनंत उत्सव</p>
+    <div class="intro-divider"></div>
+    <p class="intro-verse" id="intro-verse">Some love stories don't have endings —<br>they simply find new ways to begin again.</p>
+    <div class="intro-poem-box">
+      <div class="intro-poem-line en" id="home-poem-en"></div>
+      <div class="intro-poem-line mr" id="home-poem-mr"></div>
+    </div>
+    <div class="intro-enter-btn">
+      <button class="btn-primary" onclick="goToAuth()" id="enter-btn">Enter &rarr;</button>
+    </div>
+  </div>
+</section>
+ 
+<!-- ===== AUTH SCREEN ===== -->
+<section class="screen" id="auth">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div class="ornament">— ❧ —</div>
+      <h2 id="auth-title">Welcome</h2>
+      <p style="color:var(--text-light);font-size:0.85rem;margin-top:0.25rem" id="auth-sub">Sign in to share in the celebration</p>
+    </div>
+    <div class="tab-switcher">
+      <button class="active" id="tab-login" onclick="switchTab('login')">Sign In</button>
+      <button id="tab-register" onclick="switchTab('register')">Create Account</button>
+    </div>
+    <div id="login-form">
+      <div class="form-group">
+        <label id="label-email">Email</label>
+        <input type="email" id="login-email" placeholder="your@email.com">
+      </div>
+      <div class="form-group">
+        <label id="label-pass">Password</label>
+        <input type="password" id="login-pass" placeholder="••••••••">
+      </div>
+      <button class="auth-btn" onclick="doLogin()" id="login-btn">Sign In</button>
+    </div>
+    <div id="register-form" style="display:none">
+      <div class="form-group">
+        <label id="label-name">Your Name</label>
+        <input type="text" id="reg-name" placeholder="Your full name">
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="reg-email" placeholder="your@email.com">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="reg-pass" placeholder="Choose a password">
+      </div>
+      <button class="auth-btn" onclick="doRegister()" id="register-btn">Create Account</button>
+    </div>
+    <div id="auth-msg" class="auth-msg"></div>
+    <div style="text-align:center;margin-top:1.5rem">
+      <button onclick="goToIntro()" style="background:none;border:none;color:var(--text-light);cursor:pointer;font-size:0.85rem;text-decoration:underline">← Back</button>
+    </div>
+  </div>
+</section>
+ 
+<!-- ===== COUPLE SELECT ===== -->
+<section class="screen" id="couple-select" style="padding-top:80px">
+  <div class="top-bar">
+    <span class="logo">❧ Celebrations of Love</span>
+    <div class="top-bar-right">
+      <span id="user-greeting" style="color:var(--text-light);font-size:0.85rem;font-style:italic"></span>
+      <button onclick="showScreen('admin-panel')" id="admin-btn" style="display:none">Admin Panel</button>
+      <button onclick="doLogout()">Sign Out</button>
+    </div>
+  </div>
+  <div class="select-header fade-in">
+    <p class="greeting" id="select-greeting">With love, for you</p>
+    <h1 id="select-title">Choose a Celebration</h1>
+    <div style="width:60px;height:1px;background:linear-gradient(90deg,transparent,var(--warm-gold),transparent);margin:1rem auto"></div>
+  </div>
+  <div class="couple-grid fade-in">
+    <div class="couple-card" onclick="openCouplePage(1)">
+      <span class="couple-icon">💍</span>
+      <div class="couple-years" id="c1-years">23 Years Together</div>
+      <h2 class="couple-name" id="c1-name">Mr. Ramesh J & Mrs. Shobha J</h2>
+      <p class="couple-desc" id="c1-desc">Twenty-three years of unwavering love, sacrifice, and the gentle art of growing together through every season of life.</p>
+    </div>
+    <div class="couple-card" onclick="openCouplePage(2)">
+      <span class="couple-icon">🌸</span>
+      <div class="couple-years" id="c2-years">11 Years Together</div>
+      <h2 class="couple-name" id="c2-name">Mr. Umesh K & Mrs. Swati K</h2>
+      <p class="couple-desc" id="c2-desc">Eleven beautiful years of shared dreams, laughter, and a bond that blooms more brilliantly with every passing year.</p>
+    </div>
+  </div>
+</section>
+ 
+<!-- ===== COUPLE PAGE ===== -->
+<section class="screen" id="couple-page">
+  <nav class="page-nav">
+    <button class="back-btn" onclick="showScreen('couple-select')">← Back</button>
+    <div class="page-nav-links">
+      <a onclick="scrollToSection('gallery-section')">Highlights</a>
+      <a onclick="scrollToSection('wishes-section')">Wishes</a>
+    </div>
+    <button class="back-btn" onclick="doLogout()">Sign Out</button>
+  </nav>
+ 
+  <div class="couple-hero">
+    <div class="couple-hero-bg"></div>
+    <div class="hero-split">
+      <div class="hero-media-pane">
+        <div class="slideshow" id="couple-slideshow"></div>
+        <div class="slideshow-overlay"></div>
+      </div>
+      <div class="hero-quote-pane">
+        <div class="couple-hero-content">
+          <div class="couple-hero-years" id="hero-years">23 Years</div>
+          <h1 class="couple-hero-title" id="hero-title">Mr. Ramesh J & Mrs. Shobha J</h1>
+          <p class="couple-hero-sub" id="hero-sub">सोबत असण्याची तेवीस वर्षे</p>
+          <p class="couple-hero-verse" id="hero-verse">"Two souls, one journey — written across<br>every season they have shared together."</p>
+        </div>
+      </div>
+    </div>
+    <div class="scroll-hint">Scroll</div>
+  </div>
+ 
+  <div class="section fade-in" id="gallery-section">
+    <div class="section-header">
+      <p class="label" id="gallery-label">Moments in Time</p>
+      <h2 id="gallery-title">A Lifetime of Memories</h2>
+      <div class="section-divider"></div>
+    </div>
+    <div class="gallery-masonry" id="gallery-grid"></div>
+  </div>
+ 
+  <div class="wishing-section fade-in" id="wishes-section">
+    <div class="section-header">
+      <p class="label" id="wishes-label">From the Heart</p>
+      <h2 id="wishes-title">Leave a Wish</h2>
+      <div class="section-divider"></div>
+      <p style="color:var(--blush);font-style:italic;font-size:1rem;margin-top:0.5rem" id="wishes-desc">Your words become part of their story.</p>
+    </div>
+    <div class="wish-feature-grid" id="wish-feature-grid"></div>
+    <div class="wish-form">
+      <textarea id="wish-input" placeholder="Write your wish, memory, or message here…"></textarea>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.75rem">
+        <span style="color:var(--text-light);font-size:0.85rem;font-style:italic" id="wishing-as"></span>
+        <button class="wish-submit" onclick="submitWish()" id="wish-btn">Send Wish ❤</button>
+      </div>
+    </div>
+    <div class="wishes-list" id="wishes-list"></div>
+  </div>
+ 
+  <!-- Audio -->
+  <div class="music-bar" id="music-bar" style="display:none">
+    <div style="color:var(--warm-gold);font-size:1.2rem">♪</div>
+    <div class="music-info">
+      <div class="music-info .song-label">Now Playing</div>
+      <div class="song-name" id="now-playing">—</div>
+    </div>
+    <div class="music-controls">
+      <button onclick="prevSong()">&#x23EE;</button>
+      <button class="play-btn" id="play-pause-btn" onclick="togglePlay()">&#x25B6;</button>
+      <button onclick="nextSong()">&#x23ED;</button>
+    </div>
+    <input type="range" class="volume-slider" min="0" max="1" step="0.05" value="0.6"
+           oninput="setVolume(this.value)">
+  </div>
+</section>
+ 
+<!-- ===== ADMIN PANEL ===== -->
+<section class="screen" id="admin-panel">
+  <div class="top-bar">
+    <span class="logo">❧ Admin Panel</span>
+    <div class="top-bar-right">
+      <button onclick="showScreen('couple-select')" class="back-btn">← Dashboard</button>
+      <button onclick="doLogout()">Sign Out</button>
+    </div>
+  </div>
+  <div class="admin-header" style="margin-top:60px">
+    <h1>Administrative Controls</h1>
+    <p>Manage media, music, and content for both celebrations</p>
+  </div>
+  <div class="admin-grid">
+ 
+    <!-- Media Upload -->
+    <div class="admin-card">
+      <h3>📸 Upload Photos & Videos</h3>
+      <p style="color:var(--text-light);font-size:0.85rem;margin-bottom:1rem">Upload images or videos for each couple's gallery</p>
+      <div class="admin-couple-select" id="media-couple-select">
+        <button class="active" onclick="setAdminCouple('media',1,this)">Mr. Ramesh J & Mrs. Shobha J (23yr)</button>
+        <button onclick="setAdminCouple('media',2,this)">Mr. Umesh K & Mrs. Swati K (11yr)</button>
+      </div>
+      <div class="upload-area">
+        <div class="upload-icon">⬆</div>
+        <p>Click or drag photos/videos here</p>
+        <p style="font-size:0.75rem;margin-top:0.25rem;opacity:0.5">JPG, PNG, GIF, MP4, MOV</p>
+        <input type="file" id="media-upload" accept="image/*,video/*" multiple onchange="handleMediaUpload(event)">
+      </div>
+      <button class="admin-upload-btn" onclick="document.getElementById('media-upload').click()">Choose Files</button>
+      <div class="media-thumbs" id="media-thumbs-1" style="margin-top:1rem"></div>
+      <div class="media-thumbs" id="media-thumbs-2" style="display:none;margin-top:1rem"></div>
+    </div>
+ 
+    <!-- Music Upload -->
+    <div class="admin-card">
+      <h3>🎵 Manage Music</h3>
+      <p style="color:var(--text-light);font-size:0.85rem;margin-bottom:1rem">Upload Marathi songs for each couple's page</p>
+      <div class="admin-couple-select" id="music-couple-select">
+        <button class="active" onclick="setAdminCouple('music',1,this)">Mr. Ramesh J & Mrs. Shobha J (23yr)</button>
+        <button onclick="setAdminCouple('music',2,this)">Mr. Umesh K & Mrs. Swati K (11yr)</button>
+      </div>
+      <div class="upload-area">
+        <div class="upload-icon">♪</div>
+        <p>Upload audio files here</p>
+        <p style="font-size:0.75rem;margin-top:0.25rem;opacity:0.5">MP3, WAV, OGG, M4A</p>
+        <input type="file" id="music-upload" accept="audio/*" multiple onchange="handleMusicUpload(event)">
+      </div>
+      <button class="admin-upload-btn" onclick="document.getElementById('music-upload').click()">Choose Audio Files</button>
+      <div class="song-list" id="song-list-1"></div>
+      <div class="song-list" id="song-list-2" style="display:none"></div>
+    </div>
+ 
+    <!-- Wishes Moderation -->
+    <div class="admin-card">
+      <h3>💌 Moderate Wishes</h3>
+      <div class="admin-couple-select">
+        <button class="active" onclick="loadAdminWishes(1,this)">Mr. Ramesh J & Mrs. Shobha J</button>
+        <button onclick="loadAdminWishes(2,this)">Mr. Umesh K & Mrs. Swati K</button>
+      </div>
+      <div class="admin-wishes-list" id="admin-wishes-list">
+        <p style="color:var(--text-light);font-size:0.85rem;font-style:italic">Loading wishes…</p>
+      </div>
+    </div>
+
+    <!-- Registered People -->
+    <div class="admin-card">
+      <h3>👥 Registered People</h3>
+      <p style="color:var(--text-light);font-size:0.85rem;margin-bottom:0.7rem">All users who signed up for the celebration.</p>
+      <div style="color:var(--warm-gold);font-size:0.82rem;letter-spacing:0.06em;margin-bottom:0.55rem" id="registered-count">Total: 0</div>
+      <div class="registered-list" id="registered-users-list">
+        <p style="color:var(--text-light);font-size:0.85rem;font-style:italic">No users found yet.</p>
+      </div>
+    </div>
+ 
+    <!-- Supabase Backend Status -->
+    <div class="admin-card" style="grid-column:1/-1">
+      <h3>⚙️ Backend Status</h3>
+      <p style="color:var(--blush);font-size:0.95rem;line-height:1.7;font-style:italic;margin-bottom:0.75rem">
+        This site now uses Supabase only. Wishes, media, songs, and user records are stored in backend tables and storage buckets.
+      </p>
+      <p id="sb-status" style="color:var(--warm-gold);font-size:0.85rem;margin-top:0.5rem">Checking backend connection…</p>
+    </div>
+ 
+  </div>
+</section>
+ 
+<!-- Lightbox -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <button class="lightbox-close" onclick="closeLightbox()">✕</button>
+  <img id="lightbox-img" src="" alt="" style="display:none">
+  <video id="lightbox-vid" controls style="display:none"></video>
+</div>
+ 
+<audio id="bg-audio" loop></audio>
+ 
+<script>
+// ===== CONFIG & STATE =====
+const SUPABASE_URL = 'https://nhaslaxwmilqlmnsazcr.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5oYXNsYXh3bWlscWxtbnNhemNyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY1MTExNDcsImV4cCI6MjA5MjA4NzE0N30.Jd-gBxWOeFhRTKa1DLTuTv0ePggD4Fhho0wEmBP3CtQ';
+ 
+let supabaseClient = null;
+let currentUser = null;
+let currentCouple = 1;
+let currentLang = 'en';
+let songs = { 1: [], 2: [] };
+let media = { 1: [], 2: [] };
+let wishes = { 1: [], 2: [] };
+let currentSongIdx = { 1: 0, 2: 0 };
+let isPlaying = false;
+let slideshowTimer = null;
+let currentSlide = 0;
+let adminMediaCouple = 1;
+let adminMusicCouple = 1;
+let poemTimer = null;
+let homePoemTimer = null;
+let currentPoemIndex = 0;
+let currentHomePoemIndex = 0;
+const ADMIN_EMAILS = ['admin@anniversary.love'];
+ 
+// ===== INIT =====
+window.addEventListener('load', async () => {
+  initParticles();
+  initSupabase();
+  clearLegacyLocalStorage();
+  await loadMediaAndSongs();
+  await bootstrapSession();
+  setTimeout(() => {
+    document.getElementById('loading-overlay').classList.add('hidden');
+  }, 800);
+  initIntersectionObserver();
+  startHomePoemRotation();
+});
+ 
+function initSupabase() {
+  if (window.supabase) {
+    try {
+      supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+      setText('sb-status', '✓ Supabase connected');
+    } catch(e) {
+      supabaseClient = null;
+      setText('sb-status', '⚠ Supabase connection failed');
+    }
+  }
+}
+
+function clearLegacyLocalStorage() {
+  try {
+    localStorage.clear();
+    sessionStorage.clear();
+  } catch (e) {}
+}
+
+async function bootstrapSession() {
+  if (!supabaseClient) return;
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  if (session?.user) {
+    currentUser = {
+      id: session.user.id,
+      email: session.user.email,
+      name: session.user.user_metadata?.name || session.user.email,
+      isAdmin: ADMIN_EMAILS.includes(session.user.email)
+    };
+    afterLogin();
+  }
+}
+
+function bucketPath(folder, file) {
+  const ext = file.name.includes('.') ? file.name.split('.').pop() : 'bin';
+  return `${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+}
+
+async function uploadToBucket(bucket, file, folder) {
+  const path = bucketPath(folder, file);
+  const { error } = await supabaseClient.storage.from(bucket).upload(path, file, { upsert: false });
+  if (error) throw error;
+  const { data } = supabaseClient.storage.from(bucket).getPublicUrl(path);
+  return { url: data.publicUrl, path };
+}
+ 
+// ===== PARTICLES =====
+function initParticles() {
+  const bg = document.getElementById('particle-bg');
+  for (let i = 0; i < 20; i++) {
+    const p = document.createElement('div');
+    p.className = 'petal';
+    p.style.left = Math.random() * 100 + '%';
+    p.style.animationDuration = (8 + Math.random() * 15) + 's';
+    p.style.animationDelay = (Math.random() * 15) + 's';
+    p.style.opacity = Math.random() * 0.3;
+    p.style.transform = `rotate(${Math.random() * 90}deg)`;
+    bg.appendChild(p);
+  }
+}
+ 
+// ===== LANGUAGE =====
+const STRINGS = {
+  en: {
+    intro_title: 'A Celebration<br><em>of Enduring Love</em>',
+    intro_sub: 'प्रेमाचा अनंत उत्सव',
+    intro_verse: "Some love stories don't have endings —<br>they simply find new ways to begin again.",
+    enter_btn: 'Enter &rarr;',
+    auth_title: 'Welcome',
+    auth_sub: 'Sign in to share in the celebration',
+    tab_login: 'Sign In',
+    tab_register: 'Create Account',
+    label_email: 'Email',
+    label_pass: 'Password',
+    label_name: 'Your Name',
+    login_btn: 'Sign In',
+    register_btn: 'Create Account',
+    select_greeting: 'With love, for you',
+    select_title: 'Choose a Celebration',
+    c1_years: '23 Years Together',
+    c1_name: 'Mr. Ramesh J & Mrs. Shobha J',
+    c1_desc: 'Twenty-three years of unwavering love, sacrifice, and the gentle art of growing together through every season of life.',
+    c2_years: '11 Years Together',
+    c2_name: 'Mr. Umesh K & Mrs. Swati K',
+    c2_desc: 'Eleven beautiful years of shared dreams, laughter, and a bond that blooms more brilliantly with every passing year.',
+    gallery_label: 'Love Highlights',
+    gallery_title: 'Beautiful Things They Built Together',
+    wishes_label: 'From the Heart',
+    wishes_title: 'Leave a Wish',
+    wishes_desc: 'Your words become part of their story.',
+    wish_placeholder: 'Write your wish, memory, or message here…',
+    wish_btn: 'Send Wish ❤',
+  },
+  mr: {
+    intro_title: 'प्रेमाचा<br><em>अनंत उत्सव</em>',
+    intro_sub: 'A Celebration of Enduring Love',
+    intro_verse: "काही प्रेमकथांना अंत नसतो —<br>त्या नव्याने सुरू होतच राहतात.",
+    enter_btn: 'आत जा &rarr;',
+    auth_title: 'स्वागत आहे',
+    auth_sub: 'उत्सवात सहभागी व्हण्यासाठी साइन इन करा',
+    tab_login: 'साइन इन',
+    tab_register: 'खाते तयार करा',
+    label_email: 'ईमेल',
+    label_pass: 'पासवर्ड',
+    label_name: 'आपले नाव',
+    login_btn: 'साइन इन',
+    register_btn: 'खाते तयार करा',
+    select_greeting: 'प्रेमाने, तुमच्यासाठी',
+    select_title: 'उत्सव निवडा',
+    c1_years: '२३ वर्षे एकत्र',
+    c1_name: 'श्री. रमेश ज. & सौ. शोभा ज.',
+    c1_desc: 'अटूट प्रेम, त्याग, आणि जीवनाच्या प्रत्येक ऋतूत एकत्र वाढण्याच्या तेवीस वर्षांची गोड कथा.',
+    c2_years: '११ वर्षे एकत्र',
+    c2_name: 'श्री. उमेश क. & सौ. स्वाती क.',
+    c2_desc: 'सामायिक स्वप्ने, हास्य आणि प्रत्येक वर्षागणिक अधिक फुलणाऱ्या बंधनाची अकरा सुंदर वर्षे.',
+    gallery_label: 'प्रेमाच्या ठळक आठवणी',
+    gallery_title: 'त्यांनी एकत्र घडवलेले सुंदर क्षण',
+    wishes_label: 'मनापासून',
+    wishes_title: 'शुभेच्छा द्या',
+    wishes_desc: 'तुमचे शब्द त्यांच्या कथेचा भाग बनतात.',
+    wish_placeholder: 'आपल्या शुभेच्छा, आठवणी किंवा संदेश इथे लिहा…',
+    wish_btn: 'शुभेच्छा पाठवा ❤',
+  }
+};
+
+const HOME_POEMS = [
+  {
+    en: 'In an arranged beginning, two strangers were trusted with one shared sky.',
+    mr: 'जुळवून आणलेल्या नात्यात, दोन अनोळखी मनांना एकच आकाश दिले गेले.'
+  },
+  {
+    en: 'They learned love slowly—through responsibility, respect, and quiet patience.',
+    mr: 'त्यांनी प्रेम हळूहळू शिकले—जबाबदारीतून, आदरातून आणि शांत संयमातून.'
+  },
+  {
+    en: 'Today their journey shines, not by chance, but by choosing each other every day.',
+    mr: 'आज त्यांचा प्रवास उजळतो, योगायोगाने नव्हे तर रोज एकमेकांना निवडल्यामुळे.'
+  },
+  {
+    en: 'Some marriages are made by families, and perfected by kindness.',
+    mr: 'काही विवाह कुटुंबे जुळवतात, आणि त्यांना परिपूर्णता मिळते ती आपुलकीने.'
+  },
+  {
+    en: 'Their love did not rush—it rooted, blossomed, and stayed.',
+    mr: 'त्यांचे प्रेम घाईत वाढले नाही—ते रुजले, फुलले आणि टिकले.'
+  },
+  {
+    en: 'In the language of daily life, they wrote an epic of care.',
+    mr: 'दैनंदिन जीवनाच्या भाषेत त्यांनी जपण्याचा एक महाकाव्य लिहिले.'
+  },
+  {
+    en: 'What began with rituals became a forever made of friendship.',
+    mr: 'विधींनी सुरू झालेले नाते मैत्रीने भरलेले कायमपण बनले.'
+  },
+  {
+    en: 'Year after year, their home became a lamp for everyone around them.',
+    mr: 'वर्षानुवर्षे त्यांचे घर आजूबाजूच्या प्रत्येकासाठी एक दीप बनले.'
+  }
+];
+ 
+function setLang(lang) {
+  currentLang = lang;
+  document.getElementById('btn-en').classList.toggle('active', lang === 'en');
+  document.getElementById('btn-mr').classList.toggle('active', lang === 'mr');
+  applyStrings();
+}
+ 
+function applyStrings() {
+  const s = STRINGS[currentLang];
+  setText('intro-title', s.intro_title, true);
+  setText('intro-subtitle', s.intro_sub);
+  setText('intro-verse', s.intro_verse, true);
+  setText('enter-btn', s.enter_btn, true);
+  setText('auth-title', s.auth_title);
+  setText('auth-sub', s.auth_sub);
+  setText('tab-login', s.tab_login);
+  setText('tab-register', s.tab_register);
+  setText('label-email', s.label_email);
+  setText('label-pass', s.label_pass);
+  setText('label-name', s.label_name);
+  setText('login-btn', s.login_btn);
+  setText('register-btn', s.register_btn);
+  setText('select-greeting', s.select_greeting);
+  setText('select-title', s.select_title);
+  setText('c1-years', s.c1_years);
+  setText('c1-name', s.c1_name);
+  setText('c1-desc', s.c1_desc);
+  setText('c2-years', s.c2_years);
+  setText('c2-name', s.c2_name);
+  setText('c2-desc', s.c2_desc);
+  setText('gallery-label', s.gallery_label);
+  setText('gallery-title', s.gallery_title);
+  setText('wishes-label', s.wishes_label);
+  setText('wishes-title', s.wishes_title);
+  setText('wishes-desc', s.wishes_desc);
+  const wi = document.getElementById('wish-input');
+  if (wi) wi.placeholder = s.wish_placeholder;
+  setText('wish-btn', s.wish_btn, true);
+  updateHomePoem();
+  renderWishFeatures();
+  if (document.getElementById('couple-page').classList.contains('active')) {
+    renderCurrentCouplePoem();
+    buildGallery(currentCouple);
+  }
+}
+ 
+function setText(id, val, html = false) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (html) el.innerHTML = val; else el.textContent = val;
+}
+ 
+// ===== NAVIGATION =====
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0, 0);
+  if (id !== 'couple-page') {
+    stopMusic();
+    clearSlideshow();
+  }
+  if (id === 'admin-panel') {
+    loadAdminWishes(1, null);
+    renderAdminThumbs();
+    renderSongLists();
+    renderRegisteredUsers();
+  }
+  if (id === 'couple-select') {
+    const s = STRINGS[currentLang];
+    setText('c1-name', s.c1_name);
+    setText('c2-name', s.c2_name);
+  }
+}
+ 
+function goToIntro() { showScreen('intro'); }
+ 
+function goToAuth() {
+  showScreen('auth');
+  applyStrings();
+}
+ 
+function scrollToSection(id) {
+  document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+}
+ 
+// ===== AUTH =====
+function switchTab(tab) {
+  const isLogin = tab === 'login';
+  document.getElementById('tab-login').classList.toggle('active', isLogin);
+  document.getElementById('tab-register').classList.toggle('active', !isLogin);
+  document.getElementById('login-form').style.display = isLogin ? 'block' : 'none';
+  document.getElementById('register-form').style.display = isLogin ? 'none' : 'block';
+  document.getElementById('auth-msg').textContent = '';
+}
+ 
+function setAuthMsg(msg, type) {
+  const el = document.getElementById('auth-msg');
+  el.textContent = msg;
+  el.className = 'auth-msg ' + (type || '');
+}
+ 
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pass = document.getElementById('login-pass').value;
+  if (!email || !pass) { setAuthMsg('Please fill in all fields', 'error'); return; }
+  if (!supabaseClient) { setAuthMsg('Backend is not connected', 'error'); return; }
+  const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password: pass });
+  if (error || !data?.user) { setAuthMsg(error?.message || 'Invalid email or password', 'error'); return; }
+  currentUser = {
+    id: data.user.id,
+    email: data.user.email,
+    name: data.user.user_metadata?.name || email,
+    isAdmin: ADMIN_EMAILS.includes(data.user.email)
+  };
+  afterLogin();
+}
+ 
+async function doRegister() {
+  const name = document.getElementById('reg-name').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const pass = document.getElementById('reg-pass').value;
+  if (!name || !email || !pass) { setAuthMsg('Please fill in all fields', 'error'); return; }
+  if (pass.length < 6) { setAuthMsg('Password must be at least 6 characters', 'error'); return; }
+  if (!supabaseClient) { setAuthMsg('Backend is not connected', 'error'); return; }
+  const { data, error } = await supabaseClient.auth.signUp({
+    email,
+    password: pass,
+    options: { data: { name } }
+  });
+  if (error || !data?.user) { setAuthMsg(error?.message || 'Could not register user', 'error'); return; }
+  currentUser = {
+    id: data.user.id,
+    email: data.user.email,
+    name,
+    isAdmin: ADMIN_EMAILS.includes(data.user.email)
+  };
+  await supabaseClient.from('profiles').upsert([{
+    id: data.user.id,
+    name,
+    email,
+    is_admin: currentUser.isAdmin,
+    created_at: new Date().toISOString()
+  }], { onConflict: 'id' });
+  setAuthMsg('Account created! Welcome, ' + name, 'success');
+  setTimeout(afterLogin, 800);
+}
+ 
+function afterLogin() {
+  // Check for saved session
+  const s = STRINGS[currentLang];
+  const greetEl = document.getElementById('user-greeting');
+  if (greetEl) greetEl.textContent = 'Welcome, ' + currentUser.name;
+  const adminBtn = document.getElementById('admin-btn');
+  if (adminBtn) adminBtn.style.display = currentUser.isAdmin ? 'inline-block' : 'none';
+  showScreen('couple-select');
+  setTimeout(() => {
+    document.querySelectorAll('.fade-in').forEach(el => el.classList.add('visible'));
+  }, 100);
+}
+ 
+async function doLogout() {
+  currentUser = null;
+  if (supabaseClient) await supabaseClient.auth.signOut();
+  stopMusic();
+  clearSlideshow();
+  showScreen('intro');
+}
+ 
+// ===== COUPLE PAGE =====
+const COUPLE_DATA = {
+  1: {
+    name_en: 'Mr. Ramesh J & Mrs. Shobha J',
+    name_mr: 'श्री. रमेश ज. & सौ. शोभा ज.',
+    years_en: '23 Years of Love',
+    years_mr: 'प्रेमाची तेवीस वर्षे',
+    sub_en: 'Together Since 2003',
+    sub_mr: '२००३ पासून एकत्र',
+    verse_en: '"In the quiet moments between words,<br>in every glance across a crowded room —<br>that is where their love lives."',
+    verse_mr: '"शब्दांमधील त्या शांत क्षणांत,<br>प्रत्येक नजरेत लपलेला प्रेमाचा अर्थ —<br>तिथेच त्यांचे प्रेम वास करते."',
+  },
+  2: {
+    name_en: 'Mr. Umesh K & Mrs. Swati K',
+    name_mr: 'श्री. उमेश क. & सौ. स्वाती क.',
+    years_en: '11 Years of Love',
+    years_mr: 'प्रेमाची अकरा वर्षे',
+    sub_en: 'Together Since 2015',
+    sub_mr: '२०१५ पासून एकत्र',
+    verse_en: '"Every year with you is a new chapter,<br>every day a fresh reminder<br>of how beautiful this journey is."',
+    verse_mr: '"तुझ्यासोबतचे प्रत्येक वर्ष एक नवा अध्याय,<br>प्रत्येक दिवस हा सुंदर प्रवास<br>आणखी मौल्यवान करतो."',
+  }
+};
+
+const COUPLE_POEMS = {
+  1: [
+    {
+      en: 'Their arranged beginning became a sanctuary where duty slowly turned into devotion.',
+      mr: 'जुळवून आलेल्या सुरुवातीने असे घर दिले, जिथे कर्तव्य हळूहळू समर्पणात बदलले.'
+    },
+    {
+      en: 'He learned her silences, she held his storms—this is how forever was built.',
+      mr: 'त्याने तिच्या शांततेचा अर्थ समजला, तिने त्याच्या वादळांना कवटाळले—असे कायमपण घडले.'
+    },
+    {
+      en: 'Twenty-three years later, their love feels less like a promise and more like prayer.',
+      mr: 'तेवीस वर्षांनंतर त्यांचे प्रेम वचनासारखे नाही, तर प्रार्थनेसारखे वाटते.'
+    },
+    {
+      en: 'When life grew heavy, they became each other’s shelter, not for a day—but for a lifetime.',
+      mr: 'जीवनाचे ओझे वाढले तेव्हा त्यांनी एकमेकांना क्षणभर नव्हे, आयुष्यभर आसरा दिला.'
+    },
+    {
+      en: 'They held hands through ordinary days so gently that even pain learned to become hope.',
+      mr: 'साध्या दिवसांत त्यांनी हात इतक्या हळुवार धरले की वेदनाही हळूहळू आशेत बदलली.'
+    },
+    {
+      en: 'They turned responsibilities into rituals of care, and rituals into timeless love.',
+      mr: 'जबाबदाऱ्यांना त्यांनी जपण्याच्या सवयी दिल्या, आणि त्या सवयींना कालातीत प्रेम.'
+    },
+    {
+      en: 'Their story is not loud, yet it echoes in every heart that watches them.',
+      mr: 'त्यांची कथा गाजावाजा करत नाही, पण त्यांना पाहणाऱ्या प्रत्येक मनात घुमते.'
+    },
+    {
+      en: 'In every sunrise they found gratitude, in every sunset they found peace.',
+      mr: 'प्रत्येक सूर्योदयात त्यांनी कृतज्ञता शोधली, आणि प्रत्येक सूर्यास्तात शांतता.'
+    },
+    {
+      en: 'Love for them became simple: stand together, speak gently, forgive quickly.',
+      mr: 'त्यांच्यासाठी प्रेम साधे झाले: एकत्र उभे राहा, हळुवार बोला, लवकर माफ करा.'
+    },
+    {
+      en: 'Even after decades, they still look at each other like a cherished blessing.',
+      mr: 'दशकांनंतरही ते एकमेकांकडे जपलेल्या आशीर्वादासारखे पाहतात.'
+    }
+  ],
+  2: [
+    {
+      en: 'Arranged by families, accepted by hearts—two lives found one rhythm.',
+      mr: 'कुटुंबांनी जुळवले, मनांनी स्वीकारले—दोन आयुष्यांना एकच ताल सापडला.'
+    },
+    {
+      en: 'They did not fall in love once; they kept rising in love through every season.',
+      mr: 'ते एकदाच प्रेमात पडले नाहीत; प्रत्येक ऋतूत पुन्हा पुन्हा प्रेमात उभे राहिले.'
+    },
+    {
+      en: 'In eleven years, they turned ordinary days into gentle, unforgettable poetry.',
+      mr: 'अकरा वर्षांत त्यांनी साध्या दिवसांनाही हळुवार, अविस्मरणीय कवितेत रूपांतरित केले.'
+    },
+    {
+      en: 'In every difficult turn, they chose understanding first—and love became their strength.',
+      mr: 'प्रत्येक कठीण वळणावर त्यांनी समजूत प्रथम निवडली, आणि प्रेम त्यांची ताकद बनली.'
+    },
+    {
+      en: 'Their smiles carry years of patience, and their eyes still sparkle with day-one wonder.',
+      mr: 'त्यांच्या हास्यात अनेक वर्षांचा संयम आहे, आणि नजरेत आजही पहिल्या दिवसाचीच चमक आहे.'
+    },
+    {
+      en: 'They grew not by perfect days, but by choosing each other on imperfect ones.',
+      mr: 'परिपूर्ण दिवसांनी नव्हे, तर अपूर्ण दिवसांतही एकमेकांना निवडून ते वाढले.'
+    },
+    {
+      en: 'Their laughter became the music of home, their trust the rhythm.',
+      mr: 'त्यांचे हास्य घराचे संगीत बनले, आणि विश्वास त्याचा ताल.'
+    },
+    {
+      en: 'Every small compromise became a bridge, every bridge became closeness.',
+      mr: 'प्रत्येक छोट्या तडजोडीने एक पूल बांधला, आणि प्रत्येक पुलाने जवळीक वाढवली.'
+    },
+    {
+      en: 'They carry tenderness in ordinary hours—and that is their greatest romance.',
+      mr: 'ते साध्या क्षणांतही कोमलता जपतात—तेच त्यांचे सर्वात सुंदर प्रेम.'
+    },
+    {
+      en: 'A decade later, they still celebrate each other like a beautiful surprise.',
+      mr: 'दशकानंतरही ते एकमेकांना सुंदर आश्चर्यासारखे साजरे करतात.'
+    }
+  ]
+};
+
+const WISH_FEATURES = {
+  en: [
+    { meta: 'Feature', title: 'Memory Wall', text: 'Share one special memory and let it shine beside all blessings.' },
+    { meta: 'Feature', title: 'Blessing Sparkles', text: 'Every wish triggers a tiny celebration to honor your loving words.' },
+    { meta: 'Feature', title: 'Forever Keepsake', text: 'Messages stay as a digital keepsake for the couples to revisit anytime.' }
+  ],
+  mr: [
+    { meta: 'वैशिष्ट्य', title: 'आठवणींची भिंत', text: 'एक खास आठवण लिहा आणि ती सर्व शुभेच्छांसोबत झळकू द्या.' },
+    { meta: 'वैशिष्ट्य', title: 'आशीर्वाद फुलोरा', text: 'प्रत्येक शुभेच्छेनंतर छोटा आनंदोत्सव दिसेल, तुमच्या शब्दांचा सन्मान म्हणून.' },
+    { meta: 'वैशिष्ट्य', title: 'कायमची जपणूक', text: 'ही संदेश-खूण डिजिटल स्वरूपात जपली जाईल, पुन्हा पुन्हा वाचण्यासाठी.' }
+  ]
+};
+
+const COUPLE_FEATURES = {
+  1: {
+    en: [
+      { icon: '🤝', title: 'Built on Trust', text: 'From an arranged match to deep companionship, they made trust their daily language.' },
+      { icon: '🏡', title: 'A Warm Home', text: 'Their home became a safe place for family, laughter, and unconditional support.' },
+      { icon: '✨', title: 'Still Growing', text: 'Even after 23 years, they keep choosing each other with the same soft strength.' }
+    ],
+    mr: [
+      { icon: '🤝', title: 'विश्वासाचा पाया', text: 'जुळवून आलेल्या नात्याला त्यांनी रोजच्या विश्वासाने घट्ट मैत्रीत बदलले.' },
+      { icon: '🏡', title: 'उबदार घर', text: 'त्यांचे घर कुटुंब, हसू आणि निःस्वार्थ आधार यांचे सुंदर ठिकाण बनले.' },
+      { icon: '✨', title: 'आजही नव्याने', text: '२३ वर्षांनंतरही ते दररोज एकमेकांना नव्याने निवडतात.' }
+    ]
+  },
+  2: {
+    en: [
+      { icon: '🌸', title: 'Gentle Partnership', text: 'In every small routine, they made care and kindness feel effortless.' },
+      { icon: '🎯', title: 'Shared Dreams', text: 'They kept moving forward together, balancing family joy with personal goals.' },
+      { icon: '💫', title: 'Joy in Every Year', text: 'Eleven years in, their story shines with the same excitement as day one.' }
+    ],
+    mr: [
+      { icon: '🌸', title: 'हळुवार साथ', text: 'दैनंदिन आयुष्यातील छोट्या क्षणांतही त्यांनी माया आणि आपुलकी जपली.' },
+      { icon: '🎯', title: 'सामायिक स्वप्ने', text: 'कुटुंब आणि उद्दिष्टे यांचा सुंदर तोल सांभाळत त्यांनी प्रवास पुढे नेला.' },
+      { icon: '💫', title: 'दर वर्षी नवी खुशी', text: 'अकरा वर्षांनंतरही त्यांच्या नात्यात पहिल्या दिवसासारखीच चमक आहे.' }
+    ]
+  }
+};
+ 
+function openCouplePage(id) {
+  currentCouple = id;
+  const d = COUPLE_DATA[id];
+  const lang = currentLang;
+  setText('hero-title', lang === 'mr' ? d.name_mr : d.name_en);
+  setText('hero-years', lang === 'mr' ? d.years_mr : d.years_en);
+  setText('hero-sub', lang === 'mr' ? d.sub_mr : d.sub_en);
+  currentPoemIndex = 0;
+  renderCurrentCouplePoem();
+  showScreen('couple-page');
+  buildSlideshow(id);
+  buildGallery(id);
+  renderWishFeatures();
+  loadWishes(id);
+  startMusic(id);
+  const s = STRINGS[currentLang];
+  setText('wishing-as', 'Wishing as ' + (currentUser?.name || 'Guest'));
+  setTimeout(() => {
+    document.querySelectorAll('#couple-page .fade-in').forEach(el => el.classList.add('visible'));
+  }, 300);
+  startCouplePoemRotation();
+  burstConfetti(65);
+}
+ 
+// ===== SLIDESHOW =====
+function buildSlideshow(coupleId) {
+  const container = document.getElementById('couple-slideshow');
+  container.innerHTML = '';
+  const m = media[coupleId] || [];
+  if (m.length === 0) {
+    // Placeholder gradient slides
+    const colors = [
+      'radial-gradient(ellipse at 30% 40%, #3d1a08 0%, #0d0500 100%)',
+      'radial-gradient(ellipse at 70% 30%, #2a1005 0%, #080300 100%)',
+      'radial-gradient(ellipse at 50% 70%, #1f0e04 0%, #0a0200 100%)',
+    ];
+    colors.forEach((c, i) => {
+      const slide = document.createElement('div');
+      slide.className = 'slide' + (i === 0 ? ' active' : '');
+      slide.style.background = c;
+      container.appendChild(slide);
+    });
+  } else {
+    m.forEach((item, i) => {
+      const slide = document.createElement('div');
+      slide.className = 'slide' + (i === 0 ? ' active' : '');
+      if (item.type === 'video') {
+        const v = document.createElement('video');
+        v.src = item.url;
+        v.muted = true;
+        v.loop = true;
+        v.autoplay = true;
+        v.playsInline = true;
+        slide.appendChild(v);
+      } else {
+        const bg = document.createElement('img');
+        bg.src = item.url;
+        bg.alt = '';
+        bg.className = 'slide-bg';
+        slide.appendChild(bg);
+        const img = document.createElement('img');
+        img.src = item.url;
+        img.alt = '';
+        img.className = 'slide-main';
+        slide.appendChild(img);
+      }
+      container.appendChild(slide);
+    });
+  }
+  startSlideshow(container);
+}
+ 
+function startSlideshow(container) {
+  clearInterval(slideshowTimer);
+  currentSlide = 0;
+  slideshowTimer = setInterval(() => {
+    const slides = container.querySelectorAll('.slide');
+    if (slides.length < 2) return;
+    slides[currentSlide].classList.remove('active');
+    currentSlide = (currentSlide + 1) % slides.length;
+    slides[currentSlide].classList.add('active');
+  }, 3600);
+}
+ 
+function clearSlideshow() {
+  clearInterval(slideshowTimer);
+  stopCouplePoemRotation();
+  document.getElementById('couple-slideshow').innerHTML = '';
+}
+ 
+// ===== GALLERY =====
+function buildGallery(coupleId) {
+  const grid = document.getElementById('gallery-grid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  const list = COUPLE_FEATURES[coupleId]?.[currentLang] || [];
+  list.forEach((item) => {
+    const el = document.createElement('div');
+    el.className = 'gallery-item';
+    el.innerHTML = `
+      <span class="feature-icon">${escHtml(item.icon)}</span>
+      <h3 class="feature-title">${escHtml(item.title)}</h3>
+      <p class="feature-text">${escHtml(item.text)}</p>
+    `;
+    grid.appendChild(el);
+  });
+}
+ 
+// ===== LIGHTBOX =====
+function openLightbox(item) {
+  const lb = document.getElementById('lightbox');
+  const img = document.getElementById('lightbox-img');
+  const vid = document.getElementById('lightbox-vid');
+  if (item.type === 'video') {
+    img.style.display = 'none';
+    vid.style.display = 'block';
+    vid.src = item.url;
+  } else {
+    vid.style.display = 'none';
+    img.style.display = 'block';
+    img.src = item.url;
+  }
+  lb.classList.add('open');
+}
+ 
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('open');
+  document.getElementById('lightbox-vid').pause?.();
+}
+ 
+// ===== MUSIC =====
+function startMusic(coupleId) {
+  const songList = songs[coupleId];
+  const bar = document.getElementById('music-bar');
+  if (!songList || songList.length === 0) { bar.style.display = 'none'; return; }
+  bar.style.display = 'flex';
+  currentSongIdx[coupleId] = 0;
+  playSong(coupleId, 0);
+}
+ 
+function playSong(coupleId, idx) {
+  const audio = document.getElementById('bg-audio');
+  const songList = songs[coupleId];
+  if (!songList || songList.length === 0) return;
+  const song = songList[idx % songList.length];
+  audio.src = song.url;
+  audio.volume = 0.6;
+  audio.play().then(() => {
+    isPlaying = true;
+    document.getElementById('play-pause-btn').innerHTML = '&#x23F8;';
+    document.getElementById('now-playing').textContent = song.name;
+  }).catch(() => {});
+  audio.onended = () => nextSong();
+}
+ 
+function togglePlay() {
+  const audio = document.getElementById('bg-audio');
+  if (isPlaying) {
+    audio.pause();
+    isPlaying = false;
+    document.getElementById('play-pause-btn').innerHTML = '&#x25B6;';
+  } else {
+    audio.play();
+    isPlaying = true;
+    document.getElementById('play-pause-btn').innerHTML = '&#x23F8;';
+  }
+}
+ 
+function nextSong() {
+  currentSongIdx[currentCouple] = (currentSongIdx[currentCouple] + 1) % (songs[currentCouple]?.length || 1);
+  playSong(currentCouple, currentSongIdx[currentCouple]);
+}
+ 
+function prevSong() {
+  currentSongIdx[currentCouple] = ((currentSongIdx[currentCouple] - 1) + (songs[currentCouple]?.length || 1)) % (songs[currentCouple]?.length || 1);
+  playSong(currentCouple, currentSongIdx[currentCouple]);
+}
+ 
+function setVolume(v) { document.getElementById('bg-audio').volume = parseFloat(v); }
+ 
+function stopMusic() {
+  const audio = document.getElementById('bg-audio');
+  audio.pause();
+  audio.src = '';
+  isPlaying = false;
+  document.getElementById('music-bar').style.display = 'none';
+}
+ 
+// ===== WISHES =====
+async function loadWishes(coupleId) {
+  const list = document.getElementById('wishes-list');
+  list.innerHTML = '<p style="color:var(--text-light);font-style:italic;text-align:center">Loading wishes…</p>';
+  if (!supabaseClient) {
+    renderWishes([], list);
+    showNotif('Backend not connected');
+    return;
+  }
+  try {
+    const { data, error } = await supabaseClient.from('wishes').select('*').eq('couple_id', coupleId).order('created_at', { ascending: false });
+    if (error) throw error;
+    wishes[coupleId] = data || [];
+  } catch (e) {
+    wishes[coupleId] = [];
+    showNotif('Could not load wishes from backend');
+  }
+  renderWishes(wishes[coupleId], list);
+}
+ 
+function renderWishes(list, container) {
+  if (!list || list.length === 0) {
+    container.innerHTML = '<p style="color:var(--text-light);font-style:italic;text-align:center;padding:2rem">Be the first to leave a wish ✦</p>';
+    return;
+  }
+  container.innerHTML = list.map(w => `
+    <div class="wish-card">
+      <div class="wish-author">${escHtml(w.author || w.name || 'Anonymous')}</div>
+      <div class="wish-text">${escHtml(w.message || w.text || '')}</div>
+      <div class="wish-date">${formatDate(w.created_at || w.date)}</div>
     </div>
   `).join('');
 }
  
-function deleteWish(coupleId, idx) {
-  wishes[coupleId].splice(idx, 1);
-  saveLocalData();
-  loadAdminWishes(coupleId, null);
-  showNotif('Wish deleted');
+async function submitWish() {
+  const input = document.getElementById('wish-input');
+  const text = input.value.trim();
+  if (!text) { showNotif('Please write a message first'); return; }
+  const wish = {
+    author: currentUser?.name || 'Anonymous',
+    message: text,
+    couple_id: currentCouple,
+    created_at: new Date().toISOString(),
+    date: new Date().toISOString()
+  };
+  if (!supabaseClient) { showNotif('Backend is not connected'); return; }
+  try {
+    const { error } = await supabaseClient.from('wishes').insert([wish]);
+    if (error) throw error;
+  } catch (e) {
+    showNotif('Could not save wish to backend');
+    return;
+  }
+  input.value = '';
+  await loadWishes(currentCouple);
+  burstConfetti(36);
+  showNotif('Your wish has been sent ❤');
 }
  
-function saveSupabaseConfig() {
-  const url = document.getElementById('sb-url').value.trim();
-  const key = document.getElementById('sb-key').value.trim();
-  if (!url || !key) { document.getElementById('sb-status').textContent = 'Please enter both URL and key'; return; }
-  localStorage.setItem('sb_url', url);
-  localStorage.setItem('sb_key', key);
-  initSupabase();
-  document.getElementById('sb-status').textContent = supabaseClient ? '✓ Connected to Supabase successfully' : '⚠ Could not connect — check your credentials';
+// ===== ADMIN =====
+function setAdminCouple(type, id, btn) {
+  if (type === 'media') {
+    adminMediaCouple = id;
+    document.querySelectorAll('#media-couple-select button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('media-thumbs-1').style.display = id === 1 ? 'grid' : 'none';
+    document.getElementById('media-thumbs-2').style.display = id === 2 ? 'grid' : 'none';
+  } else {
+    adminMusicCouple = id;
+    document.querySelectorAll('#music-couple-select button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('song-list-1').style.display = id === 1 ? 'flex' : 'none';
+    document.getElementById('song-list-2').style.display = id === 2 ? 'flex' : 'none';
+  }
 }
+ 
+async function handleMediaUpload(event) {
+  const files = Array.from(event.target.files);
+  if (!supabaseClient) { showNotif('Backend is not connected'); return; }
+  for (const file of files) {
+    try {
+      const isVideo = file.type.startsWith('video/');
+      const { url, path } = await uploadToBucket('anniversary-media', file, `couple-${adminMediaCouple}`);
+      const item = { url, path, type: isVideo ? 'video' : 'image', name: file.name };
+      const { error } = await supabaseClient.from('media_assets').insert([{
+        couple_id: adminMediaCouple,
+        name: item.name,
+        url: item.url,
+        file_path: item.path,
+        type: item.type,
+        created_by: currentUser?.id || null
+      }]);
+      if (error) throw error;
+      if (!media[adminMediaCouple]) media[adminMediaCouple] = [];
+      media[adminMediaCouple].push(item);
+    } catch(e) {
+      console.error(e);
+      showNotif(`Failed to upload ${file.name}`);
+    }
+  }
+  renderAdminThumbs();
+  if (currentCouple === adminMediaCouple) buildSlideshow(currentCouple);
+  showNotif(files.length + ' file(s) uploaded to backend ✓');
+  event.target.value = '';
+}
+
+async function handleMusicUpload(event) {
+  const files = Array.from(event.target.files);
+  if (!supabaseClient) { showNotif('Backend is not connected'); return; }
+  for (const file of files) {
+    try {
+      const { url, path } = await uploadToBucket('anniversary-music', file, `couple-${adminMusicCouple}`);
+      const item = { url, path, name: file.name.replace(/\.[^.]+$/, '') };
+      const { error } = await supabaseClient.from('songs').insert([{
+        couple_id: adminMusicCouple,
+        name: item.name,
+        url: item.url,
+        file_path: item.path,
+        created_by: currentUser?.id || null
+      }]);
+      if (error) throw error;
+      if (!songs[adminMusicCouple]) songs[adminMusicCouple] = [];
+      songs[adminMusicCouple].push(item);
+    } catch(e) {
+      console.error(e);
+      showNotif(`Failed to upload ${file.name}`);
+    }
+  }
+  renderSongLists();
+  if (currentCouple === adminMusicCouple) startMusic(currentCouple);
+  showNotif(files.length + ' song(s) uploaded to backend ✓');
+  event.target.value = '';
+}
+
+async function loadMediaAndSongs() {
+  if (!supabaseClient) return;
+  for (const id of [1, 2]) {
+    const [{ data: mediaData }, { data: songData }] = await Promise.all([
+      supabaseClient.from('media_assets').select('*').eq('couple_id', id).order('created_at', { ascending: true }),
+      supabaseClient.from('songs').select('*').eq('couple_id', id).order('created_at', { ascending: true })
+    ]);
+    media[id] = (mediaData || []).map(item => ({ url: item.url, type: item.type || 'image', name: item.name, path: item.file_path, id: item.id }));
+    songs[id] = (songData || []).map(item => ({ url: item.url, name: item.name, path: item.file_path, id: item.id }));
+  }
+}
+
+function renderAdminThumbs() {
+  [1, 2].forEach(id => {
+    const container = document.getElementById('media-thumbs-' + id);
+    if (!container) return;
+    const m = media[id] || [];
+    container.innerHTML = m.map((item, idx) => `
+      <div class="media-thumb">
+        <img src="${item.url}" alt="">
+        <button class="thumb-del" onclick="deleteMedia(${id},${idx})">✕</button>
+      </div>
+    `).join('');
+  });
+}
+
+async function deleteMedia(coupleId, idx) {
+  const item = media[coupleId]?.[idx];
+  if (!item || !supabaseClient) return;
+  if (item.id) await supabaseClient.from('media_assets').delete().eq('id', item.id);
+  if (item.path) await supabaseClient.storage.from('anniversary-media').remove([item.path]);
+  media[coupleId].splice(idx, 1);
+  renderAdminThumbs();
+  if (currentCouple === coupleId) buildSlideshow(currentCouple);
+  showNotif('Media removed');
+}
+
+function renderSongLists() {
+  [1, 2].forEach(id => {
+    const container = document.getElementById('song-list-' + id);
+    if (!container) return;
+    const s = songs[id] || [];
+    if (s.length === 0) {
+      container.innerHTML = '<p style="color:var(--text-light);font-size:0.8rem;font-style:italic">No songs uploaded yet</p>';
+      return;
+    }
+    container.innerHTML = s.map((song, idx) => `
+      <div class="song-item">
+        <button class="play-song" onclick="previewSong('${song.url}')">▶</button>
+        <span class="song-name-item">${escHtml(song.name)}</span>
+        <button class="del-song" onclick="deleteSong(${id},${idx})">✕</button>
+      </div>
+    `).join('');
+  });
+}
+
+function previewSong(url) {
+  const a = document.getElementById('bg-audio');
+  a.src = url;
+  a.volume = 0.4;
+  a.play();
+}
+
+async function deleteSong(coupleId, idx) {
+  const song = songs[coupleId]?.[idx];
+  if (!song || !supabaseClient) return;
+  if (song.id) await supabaseClient.from('songs').delete().eq('id', song.id);
+  if (song.path) await supabaseClient.storage.from('anniversary-music').remove([song.path]);
+  songs[coupleId].splice(idx, 1);
+  renderSongLists();
+  showNotif('Song removed');
+}
+
+async function loadAdminWishes(coupleId, btn) {
+  if (btn) {
+    btn.closest('.admin-couple-select').querySelectorAll('button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+  if (!supabaseClient) return;
+  const container = document.getElementById('admin-wishes-list');
+  const { data } = await supabaseClient.from('wishes').select('*').eq('couple_id', coupleId).order('created_at', { ascending: false });
+  wishes[coupleId] = data || [];
+  const w = wishes[coupleId];
+  if (w.length === 0) {
+    container.innerHTML = '<p style="color:var(--text-light);font-size:0.85rem;font-style:italic">No wishes yet</p>';
+    return;
+  }
+  container.innerHTML = w.map((wish, idx) => `
+    <div class="admin-wish-item">
+      <div style="flex:1">
+        <strong style="color:var(--warm-amber);font-size:0.8rem">${escHtml(wish.author || wish.name || 'Anonymous')}</strong>
+        <p style="color:var(--blush);margin-top:0.2rem">${escHtml(wish.message || wish.text || '')}</p>
+      </div>
+      <button class="wish-del" onclick="deleteWish(${coupleId},${idx})">✕</button>
+    </div>
+  `).join('');
+}
+
+async function renderRegisteredUsers() {
+  const container = document.getElementById('registered-users-list');
+  const countEl = document.getElementById('registered-count');
+  if (!container || !countEl || !supabaseClient) return;
+  const { data } = await supabaseClient.from('profiles').select('*').order('created_at', { ascending: false });
+  const users = data || [];
+  countEl.textContent = `Total: ${users.length}`;
+  if (users.length === 0) {
+    container.innerHTML = '<p style="color:var(--text-light);font-size:0.85rem;font-style:italic">No users found yet.</p>';
+    return;
+  }
+  container.innerHTML = users.map(user => `
+    <div class="registered-item">
+      <div class="name">${escHtml(user.name || 'Unnamed User')} ${user.is_admin ? '<span style="color:var(--warm-gold);font-size:0.72rem">(Admin)</span>' : ''}</div>
+      <div class="meta">${escHtml(user.email || 'No email')}</div>
+      <div class="meta">Joined: ${formatDate(user.created_at)}</div>
+    </div>
+  `).join('');
+}
+
+async function deleteWish(coupleId, idx) {
+  const wish = wishes[coupleId]?.[idx];
+  if (!wish || !supabaseClient) return;
+  if (wish.id) await supabaseClient.from('wishes').delete().eq('id', wish.id);
+  wishes[coupleId].splice(idx, 1);
+  loadAdminWishes(coupleId, null);
+  if (currentCouple === coupleId) loadWishes(coupleId);
+  showNotif('Wish deleted');
+}
+
  
 // ===== UTILS =====
 function showNotif(msg) {
