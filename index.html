@@ -487,9 +487,8 @@
     position: relative;
     height: 100vh;
     display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    text-align: left;
+    align-items: stretch;
+    justify-content: center;
     overflow: hidden;
   }
  
@@ -500,6 +499,32 @@
     z-index: 0;
   }
  
+  .hero-split {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    height: 100%;
+    display: grid;
+    grid-template-columns: minmax(56%, 1.7fr) minmax(44%, 1fr);
+  }
+
+  .hero-media-pane {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero-quote-pane {
+    position: relative;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: clamp(1rem, 3vw, 2.5rem);
+    background: linear-gradient(145deg, rgba(13,5,0,0.94), rgba(35,14,4,0.86));
+    border-left: 1px solid rgba(201,146,42,0.24);
+    text-align: left;
+  }
+
   .slideshow {
     position: absolute;
     inset: 0;
@@ -546,16 +571,16 @@
     inset: 0;
     background: linear-gradient(to bottom, rgba(13,5,0,0.3) 0%, rgba(13,5,0,0.1) 40%, rgba(13,5,0,0.8) 100%);
     z-index: 2;
+    pointer-events: none;
   }
  
   .couple-hero-content {
     position: relative;
-    z-index: 3;
+    z-index: 4;
     padding: 2rem;
-    background: linear-gradient(180deg, rgba(13,5,0,0.55), rgba(13,5,0,0.22));
+    background: linear-gradient(180deg, rgba(13,5,0,0.5), rgba(13,5,0,0.2));
     border: 1px solid rgba(201,146,42,0.2);
-    max-width: min(92vw, 620px);
-    margin-left: clamp(1rem, 6vw, 5rem);
+    width: min(95%, 580px);
     backdrop-filter: blur(7px);
   }
  
@@ -603,6 +628,7 @@
     margin-right: 0;
     line-height: 1.8;
     opacity: 0.9;
+    min-height: 170px;
   }
   .couple-hero-verse .poem-en { color: var(--warm-cream); }
   .couple-hero-verse .poem-mr {
@@ -1103,6 +1129,14 @@
   @keyframes confetti-fall {
     to { transform: translateY(115vh) rotate(720deg); opacity: 0.15; }
   }
+  .confetti.heart {
+    width: auto;
+    height: auto;
+    background: transparent !important;
+    font-size: clamp(0.7rem, 1.3vw, 1rem);
+    line-height: 1;
+    text-shadow: 0 0 10px rgba(255, 150, 170, 0.45);
+  }
  
   /* Lightbox */
   .lightbox {
@@ -1147,8 +1181,17 @@
     .page-nav { padding: 0.85rem 0.75rem; }
     .page-nav-links { gap: 0.75rem; }
     .page-nav-links a { font-size: 0.74rem; }
-    .couple-hero { justify-content: center; text-align: center; }
-    .couple-hero-content { padding: 1.1rem; max-width: 94vw; margin-left: 0; }
+    .hero-split { grid-template-columns: 1fr; }
+    .hero-media-pane { min-height: 58vh; }
+    .hero-quote-pane {
+      min-height: 42vh;
+      border-left: none;
+      border-top: 1px solid rgba(201,146,42,0.24);
+      padding: 1.1rem 0.9rem 1.4rem;
+      text-align: center;
+    }
+    .couple-hero { justify-content: center; }
+    .couple-hero-content { padding: 1.1rem; max-width: 94vw; width: 100%; }
     .couple-hero-verse { font-size: 0.95rem; line-height: 1.6; }
     .intro-poem-box { padding: 0.8rem 0.9rem; }
     .intro-poem-line.en { font-size: 0.95rem; }
@@ -1331,15 +1374,15 @@
   <div class="couple-grid fade-in">
     <div class="couple-card" onclick="openCouplePage(1)">
       <span class="couple-icon">💍</span>
-      <div class="couple-years" id="c1-years">25 Years Together</div>
-      <h2 class="couple-name" id="c1-name">Baba & Aai</h2>
-      <p class="couple-desc" id="c1-desc">A quarter century of unwavering love, sacrifice, and the gentle art of growing together through every season of life.</p>
+      <div class="couple-years" id="c1-years">23 Years Together</div>
+      <h2 class="couple-name" id="c1-name">Mr. Ramesh J & Mrs. Shobha J</h2>
+      <p class="couple-desc" id="c1-desc">Twenty-three years of unwavering love, sacrifice, and the gentle art of growing together through every season of life.</p>
     </div>
     <div class="couple-card" onclick="openCouplePage(2)">
       <span class="couple-icon">🌸</span>
-      <div class="couple-years" id="c2-years">10 Years Together</div>
-      <h2 class="couple-name" id="c2-name">Mama & Mami</h2>
-      <p class="couple-desc" id="c2-desc">Ten beautiful years of shared dreams, laughter, and a bond that blooms more brilliantly with every passing year.</p>
+      <div class="couple-years" id="c2-years">11 Years Together</div>
+      <h2 class="couple-name" id="c2-name">Mr. Umesh K & Mrs. Swati K</h2>
+      <p class="couple-desc" id="c2-desc">Eleven beautiful years of shared dreams, laughter, and a bond that blooms more brilliantly with every passing year.</p>
     </div>
   </div>
 </section>
@@ -1357,13 +1400,19 @@
  
   <div class="couple-hero">
     <div class="couple-hero-bg"></div>
-    <div class="slideshow" id="couple-slideshow"></div>
-    <div class="slideshow-overlay"></div>
-    <div class="couple-hero-content">
-      <div class="couple-hero-years" id="hero-years">25 Years</div>
-      <h1 class="couple-hero-title" id="hero-title">Baba & Aai</h1>
-      <p class="couple-hero-sub" id="hero-sub">सोबत असण्याचे पंचवीस वर्षे</p>
-      <p class="couple-hero-verse" id="hero-verse">"Two souls, one journey — written across<br>every season they have shared together."</p>
+    <div class="hero-split">
+      <div class="hero-media-pane">
+        <div class="slideshow" id="couple-slideshow"></div>
+        <div class="slideshow-overlay"></div>
+      </div>
+      <div class="hero-quote-pane">
+        <div class="couple-hero-content">
+          <div class="couple-hero-years" id="hero-years">23 Years</div>
+          <h1 class="couple-hero-title" id="hero-title">Mr. Ramesh J & Mrs. Shobha J</h1>
+          <p class="couple-hero-sub" id="hero-sub">सोबत असण्याची तेवीस वर्षे</p>
+          <p class="couple-hero-verse" id="hero-verse">"Two souls, one journey — written across<br>every season they have shared together."</p>
+        </div>
+      </div>
     </div>
     <div class="scroll-hint">Scroll</div>
   </div>
@@ -1431,8 +1480,8 @@
       <h3>📸 Upload Photos & Videos</h3>
       <p style="color:var(--text-light);font-size:0.85rem;margin-bottom:1rem">Upload images or videos for each couple's gallery</p>
       <div class="admin-couple-select" id="media-couple-select">
-        <button class="active" onclick="setAdminCouple('media',1,this)">Baba & Aai (25yr)</button>
-        <button onclick="setAdminCouple('media',2,this)">Mama & Mami (10yr)</button>
+        <button class="active" onclick="setAdminCouple('media',1,this)">Mr. Ramesh J & Mrs. Shobha J (23yr)</button>
+        <button onclick="setAdminCouple('media',2,this)">Mr. Umesh K & Mrs. Swati K (11yr)</button>
       </div>
       <div class="upload-area">
         <div class="upload-icon">⬆</div>
@@ -1450,8 +1499,8 @@
       <h3>🎵 Manage Music</h3>
       <p style="color:var(--text-light);font-size:0.85rem;margin-bottom:1rem">Upload Marathi songs for each couple's page</p>
       <div class="admin-couple-select" id="music-couple-select">
-        <button class="active" onclick="setAdminCouple('music',1,this)">Baba & Aai (25yr)</button>
-        <button onclick="setAdminCouple('music',2,this)">Mama & Mami (10yr)</button>
+        <button class="active" onclick="setAdminCouple('music',1,this)">Mr. Ramesh J & Mrs. Shobha J (23yr)</button>
+        <button onclick="setAdminCouple('music',2,this)">Mr. Umesh K & Mrs. Swati K (11yr)</button>
       </div>
       <div class="upload-area">
         <div class="upload-icon">♪</div>
@@ -1468,8 +1517,8 @@
     <div class="admin-card">
       <h3>💌 Moderate Wishes</h3>
       <div class="admin-couple-select">
-        <button class="active" onclick="loadAdminWishes(1,this)">Baba & Aai</button>
-        <button onclick="loadAdminWishes(2,this)">Mama & Mami</button>
+        <button class="active" onclick="loadAdminWishes(1,this)">Mr. Ramesh J & Mrs. Shobha J</button>
+        <button onclick="loadAdminWishes(2,this)">Mr. Umesh K & Mrs. Swati K</button>
       </div>
       <div class="admin-wishes-list" id="admin-wishes-list">
         <p style="color:var(--text-light);font-size:0.85rem;font-style:italic">Loading wishes…</p>
@@ -1621,12 +1670,12 @@ const STRINGS = {
     register_btn: 'Create Account',
     select_greeting: 'With love, for you',
     select_title: 'Choose a Celebration',
-    c1_years: '25 Years Together',
-    c1_name: 'Baba & Aai',
-    c1_desc: 'A quarter century of unwavering love, sacrifice, and the gentle art of growing together through every season of life.',
-    c2_years: '10 Years Together',
-    c2_name: 'Mama & Mami',
-    c2_desc: 'Ten beautiful years of shared dreams, laughter, and a bond that blooms more brilliantly with every passing year.',
+    c1_years: '23 Years Together',
+    c1_name: 'Mr. Ramesh J & Mrs. Shobha J',
+    c1_desc: 'Twenty-three years of unwavering love, sacrifice, and the gentle art of growing together through every season of life.',
+    c2_years: '11 Years Together',
+    c2_name: 'Mr. Umesh K & Mrs. Swati K',
+    c2_desc: 'Eleven beautiful years of shared dreams, laughter, and a bond that blooms more brilliantly with every passing year.',
     gallery_label: 'Love Highlights',
     gallery_title: 'Beautiful Things They Built Together',
     wishes_label: 'From the Heart',
@@ -1651,12 +1700,12 @@ const STRINGS = {
     register_btn: 'खाते तयार करा',
     select_greeting: 'प्रेमाने, तुमच्यासाठी',
     select_title: 'उत्सव निवडा',
-    c1_years: '२५ वर्षे एकत्र',
-    c1_name: 'बाबा & आई',
-    c1_desc: 'अटूट प्रेम, त्याग, आणि जीवनाच्या प्रत्येक ऋतूत एकत्र वाढण्याच्या पंचवीस वर्षांची गोड कथा.',
-    c2_years: '१० वर्षे एकत्र',
-    c2_name: 'मामा & मामी',
-    c2_desc: 'सामायिक स्वप्ने, हास्य आणि प्रत्येक वर्षागणिक अधिक फुलणाऱ्या बंधनाची दहा सुंदर वर्षे.',
+    c1_years: '२३ वर्षे एकत्र',
+    c1_name: 'श्री. रमेश ज. & सौ. शोभा ज.',
+    c1_desc: 'अटूट प्रेम, त्याग, आणि जीवनाच्या प्रत्येक ऋतूत एकत्र वाढण्याच्या तेवीस वर्षांची गोड कथा.',
+    c2_years: '११ वर्षे एकत्र',
+    c2_name: 'श्री. उमेश क. & सौ. स्वाती क.',
+    c2_desc: 'सामायिक स्वप्ने, हास्य आणि प्रत्येक वर्षागणिक अधिक फुलणाऱ्या बंधनाची अकरा सुंदर वर्षे.',
     gallery_label: 'प्रेमाच्या ठळक आठवणी',
     gallery_title: 'त्यांनी एकत्र घडवलेले सुंदर क्षण',
     wishes_label: 'मनापासून',
@@ -1847,22 +1896,22 @@ window.addEventListener('DOMContentLoaded', () => {
 // ===== COUPLE PAGE =====
 const COUPLE_DATA = {
   1: {
-    name_en: 'Baba & Aai',
-    name_mr: 'बाबा & आई',
-    years_en: '25 Years of Love',
-    years_mr: 'प्रेमाची पंचवीस वर्षे',
-    sub_en: 'Together Since 1999',
-    sub_mr: '१९९९ पासून एकत्र',
+    name_en: 'Mr. Ramesh J & Mrs. Shobha J',
+    name_mr: 'श्री. रमेश ज. & सौ. शोभा ज.',
+    years_en: '23 Years of Love',
+    years_mr: 'प्रेमाची तेवीस वर्षे',
+    sub_en: 'Together Since 2003',
+    sub_mr: '२००३ पासून एकत्र',
     verse_en: '"In the quiet moments between words,<br>in every glance across a crowded room —<br>that is where their love lives."',
     verse_mr: '"शब्दांमधील त्या शांत क्षणांत,<br>प्रत्येक नजरेत लपलेला प्रेमाचा अर्थ —<br>तिथेच त्यांचे प्रेम वास करते."',
   },
   2: {
-    name_en: 'Mama & Mami',
-    name_mr: 'मामा & मामी',
-    years_en: '10 Years of Love',
-    years_mr: 'प्रेमाची दहा वर्षे',
-    sub_en: 'Together Since 2014',
-    sub_mr: '२०१४ पासून एकत्र',
+    name_en: 'Mr. Umesh K & Mrs. Swati K',
+    name_mr: 'श्री. उमेश क. & सौ. स्वाती क.',
+    years_en: '11 Years of Love',
+    years_mr: 'प्रेमाची अकरा वर्षे',
+    sub_en: 'Together Since 2015',
+    sub_mr: '२०१५ पासून एकत्र',
     verse_en: '"Every year with you is a new chapter,<br>every day a fresh reminder<br>of how beautiful this journey is."',
     verse_mr: '"तुझ्यासोबतचे प्रत्येक वर्ष एक नवा अध्याय,<br>प्रत्येक दिवस हा सुंदर प्रवास<br>आणखी मौल्यवान करतो."',
   }
@@ -1879,8 +1928,16 @@ const COUPLE_POEMS = {
       mr: 'त्याने तिच्या शांततेचा अर्थ समजला, तिने त्याच्या वादळांना कवटाळले—असे कायमपण घडले.'
     },
     {
-      en: 'Twenty-five years later, their love feels less like a promise and more like prayer.',
-      mr: 'पंचवीस वर्षांनंतर त्यांचे प्रेम वचनासारखे नाही, तर प्रार्थनेसारखे वाटते.'
+      en: 'Twenty-three years later, their love feels less like a promise and more like prayer.',
+      mr: 'तेवीस वर्षांनंतर त्यांचे प्रेम वचनासारखे नाही, तर प्रार्थनेसारखे वाटते.'
+    },
+    {
+      en: 'When life grew heavy, they became each other’s shelter, not for a day—but for a lifetime.',
+      mr: 'जीवनाचे ओझे वाढले तेव्हा त्यांनी एकमेकांना क्षणभर नव्हे, आयुष्यभर आसरा दिला.'
+    },
+    {
+      en: 'They held hands through ordinary days so gently that even pain learned to become hope.',
+      mr: 'साध्या दिवसांत त्यांनी हात इतक्या हळुवार धरले की वेदनाही हळूहळू आशेत बदलली.'
     }
   ],
   2: [
@@ -1893,8 +1950,16 @@ const COUPLE_POEMS = {
       mr: 'ते एकदाच प्रेमात पडले नाहीत; प्रत्येक ऋतूत पुन्हा पुन्हा प्रेमात उभे राहिले.'
     },
     {
-      en: 'In ten years, they turned ordinary days into gentle, unforgettable poetry.',
-      mr: 'दहा वर्षांत त्यांनी साध्या दिवसांनाही हळुवार, अविस्मरणीय कवितेत रूपांतरित केले.'
+      en: 'In eleven years, they turned ordinary days into gentle, unforgettable poetry.',
+      mr: 'अकरा वर्षांत त्यांनी साध्या दिवसांनाही हळुवार, अविस्मरणीय कवितेत रूपांतरित केले.'
+    },
+    {
+      en: 'In every difficult turn, they chose understanding first—and love became their strength.',
+      mr: 'प्रत्येक कठीण वळणावर त्यांनी समजूत प्रथम निवडली, आणि प्रेम त्यांची ताकद बनली.'
+    },
+    {
+      en: 'Their smiles carry years of patience, and their eyes still sparkle with day-one wonder.',
+      mr: 'त्यांच्या हास्यात अनेक वर्षांचा संयम आहे, आणि नजरेत आजही पहिल्या दिवसाचीच चमक आहे.'
     }
   ]
 };
@@ -1904,24 +1969,24 @@ const COUPLE_FEATURES = {
     en: [
       { icon: '🤝', title: 'Built on Trust', text: 'From an arranged match to deep companionship, they made trust their daily language.' },
       { icon: '🏡', title: 'A Warm Home', text: 'Their home became a safe place for family, laughter, and unconditional support.' },
-      { icon: '✨', title: 'Still Growing', text: 'Even after 25 years, they keep choosing each other with the same soft strength.' }
+      { icon: '✨', title: 'Still Growing', text: 'Even after 23 years, they keep choosing each other with the same soft strength.' }
     ],
     mr: [
       { icon: '🤝', title: 'विश्वासाचा पाया', text: 'जुळवून आलेल्या नात्याला त्यांनी रोजच्या विश्वासाने घट्ट मैत्रीत बदलले.' },
       { icon: '🏡', title: 'उबदार घर', text: 'त्यांचे घर कुटुंब, हसू आणि निःस्वार्थ आधार यांचे सुंदर ठिकाण बनले.' },
-      { icon: '✨', title: 'आजही नव्याने', text: '२५ वर्षांनंतरही ते दररोज एकमेकांना नव्याने निवडतात.' }
+      { icon: '✨', title: 'आजही नव्याने', text: '२३ वर्षांनंतरही ते दररोज एकमेकांना नव्याने निवडतात.' }
     ]
   },
   2: {
     en: [
       { icon: '🌸', title: 'Gentle Partnership', text: 'In every small routine, they made care and kindness feel effortless.' },
       { icon: '🎯', title: 'Shared Dreams', text: 'They kept moving forward together, balancing family joy with personal goals.' },
-      { icon: '💫', title: 'Joy in Every Year', text: 'Ten years in, their story shines with the same excitement as day one.' }
+      { icon: '💫', title: 'Joy in Every Year', text: 'Eleven years in, their story shines with the same excitement as day one.' }
     ],
     mr: [
       { icon: '🌸', title: 'हळुवार साथ', text: 'दैनंदिन आयुष्यातील छोट्या क्षणांतही त्यांनी माया आणि आपुलकी जपली.' },
       { icon: '🎯', title: 'सामायिक स्वप्ने', text: 'कुटुंब आणि उद्दिष्टे यांचा सुंदर तोल सांभाळत त्यांनी प्रवास पुढे नेला.' },
-      { icon: '💫', title: 'दर वर्षी नवी खुशी', text: 'दहा वर्षांनंतरही त्यांच्या नात्यात पहिल्या दिवसासारखीच चमक आहे.' }
+      { icon: '💫', title: 'दर वर्षी नवी खुशी', text: 'अकरा वर्षांनंतरही त्यांच्या नात्यात पहिल्या दिवसासारखीच चमक आहे.' }
     ]
   }
 };
@@ -2402,14 +2467,22 @@ function burstConfetti(count = 48) {
   const colors = ['#e8b84b', '#c9922a', '#f2ddd5', '#b5705a', '#f9f1e3'];
   for (let i = 0; i < count; i++) {
     const piece = document.createElement('span');
-    piece.className = 'confetti';
+    const isHeart = Math.random() < 0.42;
+    piece.className = 'confetti' + (isHeart ? ' heart' : '');
     piece.style.left = (Math.random() * 100) + 'vw';
-    piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+    if (isHeart) {
+      piece.textContent = Math.random() < 0.6 ? '❤' : '💖';
+      piece.style.color = ['#ff7a9e', '#ff5d8f', '#ffc0cb', '#ffd8e8'][Math.floor(Math.random() * 4)];
+    } else {
+      piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+    }
     piece.style.animationDuration = (2.5 + Math.random() * 2.7) + 's';
     piece.style.animationDelay = (Math.random() * 0.5) + 's';
     piece.style.transform = `rotate(${Math.random() * 180}deg)`;
-    piece.style.width = (6 + Math.random() * 5) + 'px';
-    piece.style.height = (10 + Math.random() * 12) + 'px';
+    if (!isHeart) {
+      piece.style.width = (6 + Math.random() * 5) + 'px';
+      piece.style.height = (10 + Math.random() * 12) + 'px';
+    }
     layer.appendChild(piece);
     setTimeout(() => piece.remove(), 5600);
   }
