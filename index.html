@@ -155,6 +155,35 @@
     opacity: 0;
     animation: fade-up 1.5s ease 2.2s forwards;
   }
+
+  .intro-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-top: 1.2rem;
+  }
+
+  .btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    padding: 0.72rem 1.4rem;
+    background: rgba(201,146,42,0.06);
+    border: 1px solid rgba(201,146,42,0.35);
+    color: var(--warm-amber);
+    font-family: var(--font-body);
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    transition: var(--transition);
+  }
+  .btn-ghost:hover {
+    border-color: var(--warm-gold);
+    color: var(--warm-cream);
+    background: rgba(201,146,42,0.14);
+  }
  
   .lang-toggle {
     display: inline-flex;
@@ -638,23 +667,129 @@
   .gallery-item {
     position: relative;
     overflow: hidden;
-    aspect-ratio: 3/4;
+    aspect-ratio: 4/5;
     cursor: pointer;
     background: rgba(45,18,0,0.5);
     border: 1px solid rgba(201,146,42,0.1);
+    border-radius: 14px;
+    isolation: isolate;
   }
-  .gallery-item:nth-child(3n+2) { aspect-ratio: 4/3; }
-  .gallery-item:nth-child(5n+1) { aspect-ratio: 1/1; }
- 
+
+  .gallery-item.wide { aspect-ratio: 16/10; }
+  .gallery-item.tall { aspect-ratio: 3/4; }
+  .gallery-item.square { aspect-ratio: 1/1; }
+
+  .media-backdrop {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center;
+    filter: blur(16px) brightness(0.45) saturate(0.7);
+    transform: scale(1.06);
+    z-index: 0;
+  }
+
   .gallery-item img, .gallery-item video {
     width: 100%; height: 100%;
-    object-fit: cover;
+    object-fit: contain;
     transition: transform 0.8s ease, filter 0.5s ease;
-    filter: saturate(0.7) brightness(0.85);
+    filter: saturate(0.88) brightness(0.94);
+    position: relative;
+    z-index: 1;
   }
   .gallery-item:hover img, .gallery-item:hover video {
-    transform: scale(1.06);
+    transform: scale(1.03);
     filter: saturate(1) brightness(1);
+  }
+
+  .gallery-toolbar {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.7rem;
+    flex-wrap: wrap;
+    margin: -0.5rem auto 2rem;
+  }
+
+  .gallery-filter-btn {
+    background: transparent;
+    border: 1px solid rgba(201,146,42,0.32);
+    color: var(--warm-amber);
+    padding: 0.4rem 0.95rem;
+    font-size: 0.78rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: var(--transition);
+  }
+  .gallery-filter-btn.active,
+  .gallery-filter-btn:hover {
+    background: rgba(201,146,42,0.15);
+    color: var(--warm-cream);
+    border-color: var(--warm-gold);
+  }
+
+  .milestone-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+  .milestone-card {
+    border: 1px solid rgba(201,146,42,0.2);
+    background: rgba(45,18,0,0.5);
+    padding: 1.2rem 1.3rem;
+    border-radius: 14px;
+    box-shadow: 0 16px 40px rgba(0,0,0,0.2);
+  }
+  .milestone-card .num {
+    font-family: var(--font-display);
+    font-size: 2rem;
+    color: var(--warm-gold);
+    line-height: 1;
+  }
+  .milestone-card .txt {
+    color: var(--blush);
+    font-style: italic;
+    margin-top: 0.45rem;
+  }
+
+  .timeline-wrap {
+    margin-top: 2rem;
+    border-left: 1px solid rgba(201,146,42,0.24);
+    padding-left: 1.3rem;
+    display: grid;
+    gap: 1rem;
+  }
+  .timeline-item {
+    position: relative;
+    padding: 0.8rem 1rem;
+    border: 1px solid rgba(201,146,42,0.16);
+    background: rgba(45,18,0,0.4);
+    border-radius: 10px;
+  }
+  .timeline-item::before {
+    content: '';
+    position: absolute;
+    left: -1.76rem;
+    top: 1.1rem;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--warm-gold);
+    box-shadow: 0 0 0 4px rgba(201,146,42,0.15);
+  }
+  .timeline-year {
+    color: var(--warm-gold);
+    letter-spacing: 0.1em;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+  }
+  .timeline-text {
+    color: var(--blush);
+    margin-top: 0.3rem;
+    line-height: 1.6;
+    font-style: italic;
   }
  
   .gallery-placeholder {
@@ -1062,6 +1197,7 @@
     .volume-slider { width: 50px; }
     .admin-grid { grid-template-columns: 1fr; }
     .gallery-masonry { grid-template-columns: repeat(2, 1fr); }
+    .gallery-item { aspect-ratio: 1/1; }
     .media-thumbs { grid-template-columns: repeat(3, 1fr); }
     .couple-hero-title { font-size: 2.5rem; }
   }
@@ -1170,6 +1306,9 @@
     <p class="intro-verse" id="intro-verse">Some love stories don't have endings —<br>they simply find new ways to begin again.</p>
     <div class="intro-enter-btn">
       <button class="btn-primary" onclick="goToAuth()" id="enter-btn">Enter &rarr;</button>
+      <div class="intro-actions">
+        <button class="btn-ghost" id="intro-music-btn" onclick="toggleIntroMusic()">♫ Cinematic Music</button>
+      </div>
     </div>
   </div>
 </section>
@@ -1280,7 +1419,23 @@
       <h2 id="gallery-title">A Lifetime of Memories</h2>
       <div class="section-divider"></div>
     </div>
+    <div class="gallery-toolbar">
+      <button class="gallery-filter-btn active" id="filter-all" onclick="setGalleryFilter('all')">All</button>
+      <button class="gallery-filter-btn" id="filter-image" onclick="setGalleryFilter('image')">Photos</button>
+      <button class="gallery-filter-btn" id="filter-video" onclick="setGalleryFilter('video')">Videos</button>
+      <button class="gallery-filter-btn" onclick="shuffleGallery()">Shuffle Layout</button>
+    </div>
     <div class="gallery-masonry" id="gallery-grid"></div>
+  </div>
+
+  <div class="section fade-in" id="milestone-section">
+    <div class="section-header">
+      <p class="label">Journey Highlights</p>
+      <h2 id="milestone-title">The Story in Beautiful Numbers</h2>
+      <div class="section-divider"></div>
+    </div>
+    <div class="milestone-grid" id="milestone-grid"></div>
+    <div class="timeline-wrap" id="timeline-wrap"></div>
   </div>
  
   <div class="wishing-section fade-in" id="wishes-section">
@@ -1433,6 +1588,10 @@ let slideshowTimer = null;
 let currentSlide = 0;
 let adminMediaCouple = 1;
 let adminMusicCouple = 1;
+let galleryFilter = 'all';
+let introAudioCtx = null;
+let introAudioNodes = null;
+let introMusicOn = false;
  
 // Demo admin credentials (also stored in localStorage for persistence)
 const ADMIN_USER = { email: 'admin@anniversary.love', password: 'vidhi2816', name: 'Admin', isAdmin: true };
@@ -1452,6 +1611,7 @@ window.addEventListener('load', () => {
     document.getElementById('loading-overlay').classList.add('hidden');
   }, 800);
   initIntersectionObserver();
+  applyStrings();
 });
  
 function initSupabase() {
@@ -1525,6 +1685,8 @@ const STRINGS = {
     wishes_desc: 'Your words become part of their story.',
     wish_placeholder: 'Write your wish, memory, or message here…',
     wish_btn: 'Send Wish ❤',
+    milestone_title: 'The Story in Beautiful Numbers',
+    intro_music_btn: '♫ Cinematic Music',
   },
   mr: {
     intro_title: 'प्रेमाचा<br><em>अनंत उत्सव</em>',
@@ -1555,6 +1717,8 @@ const STRINGS = {
     wishes_desc: 'तुमचे शब्द त्यांच्या कथेचा भाग बनतात.',
     wish_placeholder: 'आपल्या शुभेच्छा, आठवणी किंवा संदेश इथे लिहा…',
     wish_btn: 'शुभेच्छा पाठवा ❤',
+    milestone_title: 'सुंदर आकड्यांमध्ये त्यांच्या प्रवासाची कहाणी',
+    intro_music_btn: '♫ सिनेमॅटिक संगीत',
   }
 };
  
@@ -1563,6 +1727,14 @@ function setLang(lang) {
   document.getElementById('btn-en').classList.toggle('active', lang === 'en');
   document.getElementById('btn-mr').classList.toggle('active', lang === 'mr');
   applyStrings();
+  if (document.getElementById('couple-page').classList.contains('active')) {
+    const d = COUPLE_DATA[currentCouple];
+    setText('hero-title', lang === 'mr' ? d.name_mr : d.name_en);
+    setText('hero-years', lang === 'mr' ? d.years_mr : d.years_en);
+    setText('hero-sub', lang === 'mr' ? d.sub_mr : d.sub_en);
+    document.getElementById('hero-verse').innerHTML = lang === 'mr' ? d.verse_mr : d.verse_en;
+    renderMilestones(currentCouple);
+  }
 }
  
 function applyStrings() {
@@ -1593,6 +1765,8 @@ function applyStrings() {
   setText('wishes-label', s.wishes_label);
   setText('wishes-title', s.wishes_title);
   setText('wishes-desc', s.wishes_desc);
+  setText('milestone-title', s.milestone_title);
+  setText('intro-music-btn', s.intro_music_btn);
   const wi = document.getElementById('wish-input');
   if (wi) wi.placeholder = s.wish_placeholder;
   setText('wish-btn', s.wish_btn, true);
@@ -1632,6 +1806,7 @@ function showScreen(id) {
 function goToIntro() { showScreen('intro'); }
  
 function goToAuth() {
+  if (!introMusicOn) toggleIntroMusic(true);
   showScreen('auth');
   applyStrings();
 }
@@ -1725,6 +1900,28 @@ const COUPLE_DATA = {
     sub_mr: '१९९९ पासून एकत्र',
     verse_en: '"In the quiet moments between words,<br>in every glance across a crowded room —<br>that is where their love lives."',
     verse_mr: '"शब्दांमधील त्या शांत क्षणांत,<br>प्रत्येक नजरेत लपलेला प्रेमाचा अर्थ —<br>तिथेच त्यांचे प्रेम वास करते."',
+    milestones_en: [
+      { num: '25+', txt: 'Years of companionship' },
+      { num: '9,125', txt: 'Shared mornings together' },
+      { num: '∞', txt: 'Inside jokes and warm smiles' },
+    ],
+    milestones_mr: [
+      { num: '२५+', txt: 'सोबतच्या सहजीवनाची वर्षे' },
+      { num: '९,१२५', txt: 'एकत्र अनुभवलेल्या सकाळी' },
+      { num: '∞', txt: 'अंतहीन हसू आणि गुपित क्षण' },
+    ],
+    timeline_en: [
+      { year: '1999', text: 'They promised to walk side by side through every season.' },
+      { year: '2004', text: 'Home became a place built from laughter, care, and ritual.' },
+      { year: '2014', text: 'Through joys and trials, their bond grew gentler and stronger.' },
+      { year: 'Today', text: 'Their story still glows — steady, graceful, deeply rooted.' },
+    ],
+    timeline_mr: [
+      { year: '१९९९', text: 'प्रत्येक ऋतूत एकत्र चालण्याची त्यांनी शपथ घेतली.' },
+      { year: '२००४', text: 'हास्य, काळजी आणि परंपरांनी घराला प्रेमाचा आधार मिळाला.' },
+      { year: '२०१४', text: 'आनंद आणि आव्हानांत त्यांचे नाते अधिक शांत आणि मजबूत झाले.' },
+      { year: 'आज', text: 'त्यांची कहाणी अजूनही तेजस्वी, उबदार आणि जिवंत आहे.' },
+    ],
   },
   2: {
     name_en: 'Mama & Mami',
@@ -1735,11 +1932,35 @@ const COUPLE_DATA = {
     sub_mr: '२०१४ पासून एकत्र',
     verse_en: '"Every year with you is a new chapter,<br>every day a fresh reminder<br>of how beautiful this journey is."',
     verse_mr: '"तुझ्यासोबतचे प्रत्येक वर्ष एक नवा अध्याय,<br>प्रत्येक दिवस हा सुंदर प्रवास<br>आणखी मौल्यवान करतो."',
+    milestones_en: [
+      { num: '10+', txt: 'Years of growing together' },
+      { num: '3,650', txt: 'Days of shared dreams' },
+      { num: '100%', txt: 'Heartfelt partnership' },
+    ],
+    milestones_mr: [
+      { num: '१०+', txt: 'एकत्र वाढलेल्या प्रेमाची वर्षे' },
+      { num: '३,६५०', txt: 'सामायिक स्वप्नांचे दिवस' },
+      { num: '१००%', txt: 'मनापासूनची साथ' },
+    ],
+    timeline_en: [
+      { year: '2014', text: 'A new chapter began with courage, warmth, and hope.' },
+      { year: '2017', text: 'They turned ordinary moments into treasured memories.' },
+      { year: '2021', text: 'Every challenge became another reason to stand together.' },
+      { year: 'Today', text: 'Their love blooms brighter with each passing year.' },
+    ],
+    timeline_mr: [
+      { year: '२०१४', text: 'धैर्य, प्रेम आणि आशेने नव्या प्रवासाची सुरुवात झाली.' },
+      { year: '२०१७', text: 'साध्या क्षणांना त्यांनी सुंदर आठवणीत रूपांतरित केले.' },
+      { year: '२०२१', text: 'प्रत्येक आव्हानाने त्यांची साथ आणखी घट्ट झाली.' },
+      { year: 'आज', text: 'प्रत्येक वर्षागणिक त्यांचे प्रेम अधिक तेजाने फुलत आहे.' },
+    ],
   }
 };
  
 function openCouplePage(id) {
   currentCouple = id;
+  galleryFilter = 'all';
+  updateGalleryFilterButtons();
   const d = COUPLE_DATA[id];
   const lang = currentLang;
   setText('hero-title', lang === 'mr' ? d.name_mr : d.name_en);
@@ -1749,6 +1970,7 @@ function openCouplePage(id) {
   showScreen('couple-page');
   buildSlideshow(id);
   buildGallery(id);
+  renderMilestones(id);
   loadWishes(id);
   startMusic(id);
   const s = STRINGS[currentLang];
@@ -1756,6 +1978,55 @@ function openCouplePage(id) {
   setTimeout(() => {
     document.querySelectorAll('#couple-page .fade-in').forEach(el => el.classList.add('visible'));
   }, 300);
+}
+
+// ===== INTRO CINEMATIC MUSIC =====
+function toggleIntroMusic(forceOn = false) {
+  if (!introAudioCtx) {
+    introAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (introAudioCtx.state === 'suspended') introAudioCtx.resume();
+  if (introMusicOn && !forceOn) {
+    if (introAudioNodes?.master) {
+      const t = introAudioCtx.currentTime;
+      introAudioNodes.master.gain.cancelScheduledValues(t);
+      introAudioNodes.master.gain.linearRampToValueAtTime(0.0001, t + 0.7);
+    }
+    introMusicOn = false;
+    return;
+  }
+  if (!introAudioNodes) introAudioNodes = createIntroPad(introAudioCtx);
+  const t = introAudioCtx.currentTime;
+  introAudioNodes.master.gain.cancelScheduledValues(t);
+  introAudioNodes.master.gain.setValueAtTime(0.0001, t);
+  introAudioNodes.master.gain.linearRampToValueAtTime(0.12, t + 1.2);
+  introMusicOn = true;
+}
+
+function createIntroPad(ctx) {
+  const master = ctx.createGain();
+  master.gain.value = 0.0001;
+  master.connect(ctx.destination);
+
+  const freqs = [174.61, 220, 261.63];
+  freqs.forEach((f, i) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    const lfo = ctx.createOscillator();
+    const lfoGain = ctx.createGain();
+    osc.type = i === 0 ? 'sine' : 'triangle';
+    osc.frequency.value = f;
+    gain.gain.value = 0.02;
+    lfo.frequency.value = 0.06 + i * 0.02;
+    lfoGain.gain.value = 3 + i;
+    lfo.connect(lfoGain);
+    lfoGain.connect(osc.frequency);
+    osc.connect(gain);
+    gain.connect(master);
+    osc.start();
+    lfo.start();
+  });
+  return { master };
 }
  
 // ===== SLIDESHOW =====
@@ -1821,7 +2092,8 @@ function clearSlideshow() {
 function buildGallery(coupleId) {
   const grid = document.getElementById('gallery-grid');
   grid.innerHTML = '';
-  const m = media[coupleId] || [];
+  const allMedia = media[coupleId] || [];
+  const m = galleryFilter === 'all' ? allMedia : allMedia.filter(item => item.type === galleryFilter);
   if (m.length === 0) {
     // Placeholder cards
     for (let i = 0; i < 6; i++) {
@@ -1836,21 +2108,79 @@ function buildGallery(coupleId) {
     const el = document.createElement('div');
     el.className = 'gallery-item';
     el.onclick = () => openLightbox(item);
+    if (item.type === 'image') {
+      const blur = document.createElement('div');
+      blur.className = 'media-backdrop';
+      blur.style.backgroundImage = `url('${item.url}')`;
+      el.appendChild(blur);
+    }
     if (item.type === 'video') {
       const v = document.createElement('video');
       v.src = item.url;
       v.muted = true;
       v.loop = true;
       v.playsInline = true;
+      v.autoplay = true;
       el.appendChild(v);
     } else {
       const img = document.createElement('img');
       img.src = item.url;
       img.alt = 'Memory ' + (idx + 1);
+      img.onload = () => {
+        const ratio = img.naturalWidth / Math.max(1, img.naturalHeight);
+        el.classList.remove('wide', 'tall', 'square');
+        if (ratio > 1.35) el.classList.add('wide');
+        else if (ratio < 0.82) el.classList.add('tall');
+        else el.classList.add('square');
+      };
       el.appendChild(img);
     }
     grid.appendChild(el);
   });
+}
+
+function setGalleryFilter(type) {
+  galleryFilter = type;
+  updateGalleryFilterButtons();
+  buildGallery(currentCouple);
+}
+
+function updateGalleryFilterButtons() {
+  ['all', 'image', 'video'].forEach(type => {
+    const btn = document.getElementById(`filter-${type}`);
+    if (btn) btn.classList.toggle('active', galleryFilter === type);
+  });
+}
+
+function shuffleGallery() {
+  const list = media[currentCouple] || [];
+  for (let i = list.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [list[i], list[j]] = [list[j], list[i]];
+  }
+  saveLocalData();
+  buildGallery(currentCouple);
+  showNotif('Gallery refreshed with a new cinematic arrangement ✦');
+}
+
+function renderMilestones(coupleId) {
+  const d = COUPLE_DATA[coupleId];
+  const cards = currentLang === 'mr' ? d.milestones_mr : d.milestones_en;
+  const timeline = currentLang === 'mr' ? d.timeline_mr : d.timeline_en;
+  const grid = document.getElementById('milestone-grid');
+  const list = document.getElementById('timeline-wrap');
+  grid.innerHTML = cards.map(c => `
+    <article class="milestone-card">
+      <div class="num">${escHtml(c.num)}</div>
+      <p class="txt">${escHtml(c.txt)}</p>
+    </article>
+  `).join('');
+  list.innerHTML = timeline.map(t => `
+    <article class="timeline-item">
+      <div class="timeline-year">${escHtml(t.year)}</div>
+      <p class="timeline-text">${escHtml(t.text)}</p>
+    </article>
+  `).join('');
 }
  
 // ===== LIGHTBOX =====
@@ -1877,6 +2207,7 @@ function closeLightbox() {
  
 // ===== MUSIC =====
 function startMusic(coupleId) {
+  if (introMusicOn) toggleIntroMusic();
   const songList = songs[coupleId];
   const bar = document.getElementById('music-bar');
   if (!songList || songList.length === 0) { bar.style.display = 'none'; return; }
@@ -1931,6 +2262,7 @@ function stopMusic() {
   audio.src = '';
   isPlaying = false;
   document.getElementById('music-bar').style.display = 'none';
+  if (introMusicOn) toggleIntroMusic();
 }
  
 // ===== WISHES =====
