@@ -488,8 +488,8 @@
     height: 100vh;
     display: flex;
     align-items: center;
-    justify-content: center;
-    text-align: center;
+    justify-content: flex-start;
+    text-align: left;
     overflow: hidden;
   }
  
@@ -554,7 +554,8 @@
     padding: 2rem;
     background: linear-gradient(180deg, rgba(13,5,0,0.55), rgba(13,5,0,0.22));
     border: 1px solid rgba(201,146,42,0.2);
-    max-width: min(92vw, 760px);
+    max-width: min(92vw, 620px);
+    margin-left: clamp(1rem, 6vw, 5rem);
     backdrop-filter: blur(7px);
   }
  
@@ -598,8 +599,8 @@
     font-size: 1.1rem;
     font-style: italic;
     max-width: 500px;
-    margin-left: auto;
-    margin-right: auto;
+    margin-left: 0;
+    margin-right: 0;
     line-height: 1.8;
     opacity: 0.9;
   }
@@ -674,46 +675,52 @@
  
   .gallery-masonry {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1.2rem;
   }
  
   .gallery-item {
     position: relative;
     overflow: hidden;
-    aspect-ratio: 3/4;
-    cursor: pointer;
-    background: rgba(45,18,0,0.5);
-    border: 1px solid rgba(201,146,42,0.1);
-  }
-  .gallery-item:nth-child(3n+2) { aspect-ratio: 4/3; }
-  .gallery-item:nth-child(5n+1) { aspect-ratio: 1/1; }
- 
-  .gallery-item img, .gallery-item video {
-    width: 100%; height: 100%;
-    object-fit: contain;
-    background: #160900;
-    transition: transform 0.8s ease, filter 0.5s ease;
-    filter: saturate(0.78) brightness(0.9);
-  }
-  .gallery-item:hover img, .gallery-item:hover video {
-    transform: scale(1.06);
-    filter: saturate(1) brightness(1);
-  }
- 
-  .gallery-placeholder {
-    width: 100%; height: 100%;
+    min-height: 180px;
+    cursor: default;
+    background: linear-gradient(145deg, rgba(45,18,0,0.6), rgba(26,10,0,0.72));
+    border: 1px solid rgba(201,146,42,0.22);
+    padding: 1.1rem;
     display: flex;
     flex-direction: column;
+    gap: 0.65rem;
+    transition: transform 0.35s ease, border-color 0.35s ease;
+  }
+  .gallery-item:hover {
+    transform: translateY(-5px);
+    border-color: rgba(232,184,75,0.45);
+  }
+
+  .feature-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 1px solid rgba(232,184,75,0.35);
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 0.5rem;
-    color: var(--warm-gold);
-    opacity: 0.4;
-    font-size: 0.85rem;
-    letter-spacing: 0.1em;
+    font-size: 1.2rem;
+    color: var(--warm-amber);
+    background: rgba(13,5,0,0.45);
   }
-  .gallery-placeholder svg { width: 32px; height: 32px; opacity: 0.5; }
+  .feature-title {
+    color: var(--warm-cream);
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    font-style: italic;
+    line-height: 1.25;
+  }
+  .feature-text {
+    color: var(--blush);
+    font-size: 1rem;
+    line-height: 1.5;
+  }
  
   /* ===== AUDIO PLAYER ===== */
   .music-bar {
@@ -1132,7 +1139,7 @@
     .music-bar { padding: 0.5rem 1rem; gap: 0.5rem; }
     .volume-slider { width: 50px; }
     .admin-grid { grid-template-columns: 1fr; }
-    .gallery-masonry { grid-template-columns: repeat(2, 1fr); }
+    .gallery-masonry { grid-template-columns: repeat(1, 1fr); }
     .media-thumbs { grid-template-columns: repeat(3, 1fr); }
     .couple-hero-title { font-size: 2.5rem; }
     .top-bar { flex-wrap: wrap; gap: 0.75rem; }
@@ -1140,7 +1147,8 @@
     .page-nav { padding: 0.85rem 0.75rem; }
     .page-nav-links { gap: 0.75rem; }
     .page-nav-links a { font-size: 0.74rem; }
-    .couple-hero-content { padding: 1.1rem; max-width: 94vw; }
+    .couple-hero { justify-content: center; text-align: center; }
+    .couple-hero-content { padding: 1.1rem; max-width: 94vw; margin-left: 0; }
     .couple-hero-verse { font-size: 0.95rem; line-height: 1.6; }
     .intro-poem-box { padding: 0.8rem 0.9rem; }
     .intro-poem-line.en { font-size: 0.95rem; }
@@ -1341,7 +1349,7 @@
   <nav class="page-nav">
     <button class="back-btn" onclick="showScreen('couple-select')">← Back</button>
     <div class="page-nav-links">
-      <a onclick="scrollToSection('gallery-section')">Memories</a>
+      <a onclick="scrollToSection('gallery-section')">Highlights</a>
       <a onclick="scrollToSection('wishes-section')">Wishes</a>
     </div>
     <button class="back-btn" onclick="doLogout()">Sign Out</button>
@@ -1619,8 +1627,8 @@ const STRINGS = {
     c2_years: '10 Years Together',
     c2_name: 'Mama & Mami',
     c2_desc: 'Ten beautiful years of shared dreams, laughter, and a bond that blooms more brilliantly with every passing year.',
-    gallery_label: 'Moments in Time',
-    gallery_title: 'A Lifetime of Memories',
+    gallery_label: 'Love Highlights',
+    gallery_title: 'Beautiful Things They Built Together',
     wishes_label: 'From the Heart',
     wishes_title: 'Leave a Wish',
     wishes_desc: 'Your words become part of their story.',
@@ -1649,8 +1657,8 @@ const STRINGS = {
     c2_years: '१० वर्षे एकत्र',
     c2_name: 'मामा & मामी',
     c2_desc: 'सामायिक स्वप्ने, हास्य आणि प्रत्येक वर्षागणिक अधिक फुलणाऱ्या बंधनाची दहा सुंदर वर्षे.',
-    gallery_label: 'आठवणींचे क्षण',
-    gallery_title: 'आयुष्याच्या आठवणी',
+    gallery_label: 'प्रेमाच्या ठळक आठवणी',
+    gallery_title: 'त्यांनी एकत्र घडवलेले सुंदर क्षण',
     wishes_label: 'मनापासून',
     wishes_title: 'शुभेच्छा द्या',
     wishes_desc: 'तुमचे शब्द त्यांच्या कथेचा भाग बनतात.',
@@ -1715,6 +1723,7 @@ function applyStrings() {
   updateHomePoem();
   if (document.getElementById('couple-page').classList.contains('active')) {
     renderCurrentCouplePoem();
+    buildGallery(currentCouple);
   }
 }
  
@@ -1889,6 +1898,33 @@ const COUPLE_POEMS = {
     }
   ]
 };
+
+const COUPLE_FEATURES = {
+  1: {
+    en: [
+      { icon: '🤝', title: 'Built on Trust', text: 'From an arranged match to deep companionship, they made trust their daily language.' },
+      { icon: '🏡', title: 'A Warm Home', text: 'Their home became a safe place for family, laughter, and unconditional support.' },
+      { icon: '✨', title: 'Still Growing', text: 'Even after 25 years, they keep choosing each other with the same soft strength.' }
+    ],
+    mr: [
+      { icon: '🤝', title: 'विश्वासाचा पाया', text: 'जुळवून आलेल्या नात्याला त्यांनी रोजच्या विश्वासाने घट्ट मैत्रीत बदलले.' },
+      { icon: '🏡', title: 'उबदार घर', text: 'त्यांचे घर कुटुंब, हसू आणि निःस्वार्थ आधार यांचे सुंदर ठिकाण बनले.' },
+      { icon: '✨', title: 'आजही नव्याने', text: '२५ वर्षांनंतरही ते दररोज एकमेकांना नव्याने निवडतात.' }
+    ]
+  },
+  2: {
+    en: [
+      { icon: '🌸', title: 'Gentle Partnership', text: 'In every small routine, they made care and kindness feel effortless.' },
+      { icon: '🎯', title: 'Shared Dreams', text: 'They kept moving forward together, balancing family joy with personal goals.' },
+      { icon: '💫', title: 'Joy in Every Year', text: 'Ten years in, their story shines with the same excitement as day one.' }
+    ],
+    mr: [
+      { icon: '🌸', title: 'हळुवार साथ', text: 'दैनंदिन आयुष्यातील छोट्या क्षणांतही त्यांनी माया आणि आपुलकी जपली.' },
+      { icon: '🎯', title: 'सामायिक स्वप्ने', text: 'कुटुंब आणि उद्दिष्टे यांचा सुंदर तोल सांभाळत त्यांनी प्रवास पुढे नेला.' },
+      { icon: '💫', title: 'दर वर्षी नवी खुशी', text: 'दहा वर्षांनंतरही त्यांच्या नात्यात पहिल्या दिवसासारखीच चमक आहे.' }
+    ]
+  }
+};
  
 function openCouplePage(id) {
   currentCouple = id;
@@ -1982,35 +2018,17 @@ function clearSlideshow() {
 // ===== GALLERY =====
 function buildGallery(coupleId) {
   const grid = document.getElementById('gallery-grid');
+  if (!grid) return;
   grid.innerHTML = '';
-  const m = media[coupleId] || [];
-  if (m.length === 0) {
-    // Placeholder cards
-    for (let i = 0; i < 6; i++) {
-      const item = document.createElement('div');
-      item.className = 'gallery-item';
-      item.innerHTML = `<div class="gallery-placeholder"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>Upload photos to see them here</div>`;
-      grid.appendChild(item);
-    }
-    return;
-  }
-  m.forEach((item, idx) => {
+  const list = COUPLE_FEATURES[coupleId]?.[currentLang] || [];
+  list.forEach((item) => {
     const el = document.createElement('div');
     el.className = 'gallery-item';
-    el.onclick = () => openLightbox(item);
-    if (item.type === 'video') {
-      const v = document.createElement('video');
-      v.src = item.url;
-      v.muted = true;
-      v.loop = true;
-      v.playsInline = true;
-      el.appendChild(v);
-    } else {
-      const img = document.createElement('img');
-      img.src = item.url;
-      img.alt = 'Memory ' + (idx + 1);
-      el.appendChild(img);
-    }
+    el.innerHTML = `
+      <span class="feature-icon">${escHtml(item.icon)}</span>
+      <h3 class="feature-title">${escHtml(item.title)}</h3>
+      <p class="feature-text">${escHtml(item.text)}</p>
+    `;
     grid.appendChild(el);
   });
 }
