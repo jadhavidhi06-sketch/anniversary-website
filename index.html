@@ -1592,25 +1592,13 @@
       </div>
     </div>
  
-    <!-- Supabase Setup Guide -->
+    <!-- Supabase Backend Status -->
     <div class="admin-card" style="grid-column:1/-1">
-      <h3>⚙️ Backend Setup — Important</h3>
+      <h3>⚙️ Backend Status</h3>
       <p style="color:var(--blush);font-size:0.95rem;line-height:1.7;font-style:italic;margin-bottom:0.75rem">
-        To enable permanent storage of wishes, photos, and music, configure Supabase below.
-        Without this, data is saved locally in your browser only (for preview/demo).
+        This site now uses Supabase only. Wishes, media, songs, and user records are stored in backend tables and storage buckets.
       </p>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
-        <div class="form-group">
-          <label>Supabase URL</label>
-          <input type="text" id="sb-url" placeholder="https://xxxx.supabase.co" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(201,146,42,0.2);color:var(--warm-cream);padding:0.6rem;outline:none;">
-        </div>
-        <div class="form-group">
-          <label>Supabase Anon Key</label>
-          <input type="text" id="sb-key" placeholder="eyJhbGci..." style="width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(201,146,42,0.2);color:var(--warm-cream);padding:0.6rem;outline:none;">
-        </div>
-      </div>
-      <button class="admin-upload-btn" style="width:auto;padding:0.6rem 1.5rem;margin-top:0.5rem" onclick="saveSupabaseConfig()">Save & Connect</button>
-      <p id="sb-status" style="color:var(--warm-gold);font-size:0.85rem;margin-top:0.5rem"></p>
+      <p id="sb-status" style="color:var(--warm-gold);font-size:0.85rem;margin-top:0.5rem">Checking backend connection…</p>
     </div>
  
   </div>
@@ -1627,8 +1615,8 @@
  
 <script>
 // ===== CONFIG & STATE =====
-const SUPABASE_URL = localStorage.getItem('sb_url') || '';
-const SUPABASE_KEY = localStorage.getItem('sb_key') || '';
+const SUPABASE_URL = 'https://nhaslaxwmilqlmnsazcr.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5oYXNsYXh3bWlscWxtbnNhemNyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY1MTExNDcsImV4cCI6MjA5MjA4NzE0N30.Jd-gBxWOeFhRTKa1DLTuTv0ePggD4Fhho0wEmBP3CtQ';
  
 let supabaseClient = null;
 let currentUser = null;
@@ -1647,21 +1635,15 @@ let poemTimer = null;
 let homePoemTimer = null;
 let currentPoemIndex = 0;
 let currentHomePoemIndex = 0;
- 
-// Demo admin credentials (also stored in localStorage for persistence)
-const ADMIN_USER = { email: 'admin@anniversary.love', password: 'vidhi2816', name: 'Admin', isAdmin: true, createdAt: '2024-01-01T00:00:00.000Z' };
+const ADMIN_EMAILS = ['admin@anniversary.love'];
  
 // ===== INIT =====
-window.addEventListener('load', () => {
+window.addEventListener('load', async () => {
   initParticles();
   initSupabase();
-  loadLocalData();
-  // Pre-populate admin if not exists
-  let users = JSON.parse(localStorage.getItem('users') || '[]');
-  if (!users.find(u => u.email === ADMIN_USER.email)) {
-    users.push(ADMIN_USER);
-    localStorage.setItem('users', JSON.stringify(users));
-  }
+  clearLegacyLocalStorage();
+  await loadMediaAndSongs();
+  await bootstrapSession();
   setTimeout(() => {
     document.getElementById('loading-overlay').classList.add('hidden');
   }, 800);
@@ -1670,50 +1652,49 @@ window.addEventListener('load', () => {
 });
  
 function initSupabase() {
-  const url = localStorage.getItem('sb_url');
-  const key = localStorage.getItem('sb_key');
-  if (url && key && window.supabase) {
+  if (window.supabase) {
     try {
-      supabaseClient = window.supabase.createClient(url, key);
-    } catch(e) { supabaseClient = null; }
+      supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+      setText('sb-status', '✓ Supabase connected');
+    } catch(e) {
+      supabaseClient = null;
+      setText('sb-status', '⚠ Supabase connection failed');
+    }
   }
 }
- 
-function loadLocalData() {
-  const storedMedia = localStorage.getItem('couple_media');
-  const storedSongs = localStorage.getItem('couple_songs');
-  const storedWishes = localStorage.getItem('couple_wishes');
-  if (storedMedia) media = JSON.parse(storedMedia);
-  if (storedSongs) songs = JSON.parse(storedSongs);
-  if (storedWishes) wishes = JSON.parse(storedWishes);
-  sanitizeStoredLocalAssets();
+
+function clearLegacyLocalStorage() {
+  try {
+    localStorage.clear();
+    sessionStorage.clear();
+  } catch (e) {}
 }
 
-function saveLocalData() {
-  localStorage.setItem('couple_media', JSON.stringify(media));
-  localStorage.setItem('couple_songs', JSON.stringify(songs));
-  localStorage.setItem('couple_wishes', JSON.stringify(wishes));
+async function bootstrapSession() {
+  if (!supabaseClient) return;
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  if (session?.user) {
+    currentUser = {
+      id: session.user.id,
+      email: session.user.email,
+      name: session.user.user_metadata?.name || session.user.email,
+      isAdmin: ADMIN_EMAILS.includes(session.user.email)
+    };
+    afterLogin();
+  }
 }
 
-function sanitizeStoredLocalAssets() {
-  let changed = false;
-  [1, 2].forEach(id => {
-    const beforeMediaLen = (media[id] || []).length;
-    const beforeSongsLen = (songs[id] || []).length;
-    media[id] = (media[id] || []).filter(item => typeof item?.url === 'string' && !item.url.startsWith('blob:'));
-    songs[id] = (songs[id] || []).filter(item => typeof item?.url === 'string' && !item.url.startsWith('blob:'));
-    if (media[id].length !== beforeMediaLen || songs[id].length !== beforeSongsLen) changed = true;
-  });
-  if (changed) saveLocalData();
+function bucketPath(folder, file) {
+  const ext = file.name.includes('.') ? file.name.split('.').pop() : 'bin';
+  return `${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
 }
 
-function readFileAsDataUrl(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = () => reject(new Error('Unable to read file'));
-    reader.readAsDataURL(file);
-  });
+async function uploadToBucket(bucket, file, folder) {
+  const path = bucketPath(folder, file);
+  const { error } = await supabaseClient.storage.from(bucket).upload(path, file, { upsert: false });
+  if (error) throw error;
+  const { data } = supabaseClient.storage.from(bucket).getPublicUrl(path);
+  return { url: data.publicUrl, path };
 }
  
 // ===== PARTICLES =====
@@ -1895,10 +1876,6 @@ function showScreen(id) {
     loadAdminWishes(1, null);
     renderAdminThumbs();
     renderSongLists();
-    const urlEl = document.getElementById('sb-url');
-    const keyEl = document.getElementById('sb-key');
-    if (urlEl) urlEl.value = localStorage.getItem('sb_url') || '';
-    if (keyEl) keyEl.value = localStorage.getItem('sb_key') || '';
     renderRegisteredUsers();
   }
   if (id === 'couple-select') {
@@ -1935,31 +1912,48 @@ function setAuthMsg(msg, type) {
   el.className = 'auth-msg ' + (type || '');
 }
  
-function doLogin() {
+async function doLogin() {
   const email = document.getElementById('login-email').value.trim();
   const pass = document.getElementById('login-pass').value;
   if (!email || !pass) { setAuthMsg('Please fill in all fields', 'error'); return; }
-  const users = JSON.parse(localStorage.getItem('users') || '[]');
-  const user = users.find(u => u.email === email && u.password === pass);
-  if (!user) { setAuthMsg('Invalid email or password', 'error'); return; }
-  currentUser = user;
-  localStorage.setItem('current_user', JSON.stringify(user));
+  if (!supabaseClient) { setAuthMsg('Backend is not connected', 'error'); return; }
+  const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password: pass });
+  if (error || !data?.user) { setAuthMsg(error?.message || 'Invalid email or password', 'error'); return; }
+  currentUser = {
+    id: data.user.id,
+    email: data.user.email,
+    name: data.user.user_metadata?.name || email,
+    isAdmin: ADMIN_EMAILS.includes(data.user.email)
+  };
   afterLogin();
 }
  
-function doRegister() {
+async function doRegister() {
   const name = document.getElementById('reg-name').value.trim();
   const email = document.getElementById('reg-email').value.trim();
   const pass = document.getElementById('reg-pass').value;
   if (!name || !email || !pass) { setAuthMsg('Please fill in all fields', 'error'); return; }
   if (pass.length < 6) { setAuthMsg('Password must be at least 6 characters', 'error'); return; }
-  let users = JSON.parse(localStorage.getItem('users') || '[]');
-  if (users.find(u => u.email === email)) { setAuthMsg('Email already registered', 'error'); return; }
-  const user = { email, password: pass, name, isAdmin: false, createdAt: new Date().toISOString() };
-  users.push(user);
-  localStorage.setItem('users', JSON.stringify(users));
-  currentUser = user;
-  localStorage.setItem('current_user', JSON.stringify(user));
+  if (!supabaseClient) { setAuthMsg('Backend is not connected', 'error'); return; }
+  const { data, error } = await supabaseClient.auth.signUp({
+    email,
+    password: pass,
+    options: { data: { name } }
+  });
+  if (error || !data?.user) { setAuthMsg(error?.message || 'Could not register user', 'error'); return; }
+  currentUser = {
+    id: data.user.id,
+    email: data.user.email,
+    name,
+    isAdmin: ADMIN_EMAILS.includes(data.user.email)
+  };
+  await supabaseClient.from('profiles').upsert([{
+    id: data.user.id,
+    name,
+    email,
+    is_admin: currentUser.isAdmin,
+    created_at: new Date().toISOString()
+  }], { onConflict: 'id' });
   setAuthMsg('Account created! Welcome, ' + name, 'success');
   setTimeout(afterLogin, 800);
 }
@@ -1977,21 +1971,13 @@ function afterLogin() {
   }, 100);
 }
  
-function doLogout() {
+async function doLogout() {
   currentUser = null;
-  localStorage.removeItem('current_user');
+  if (supabaseClient) await supabaseClient.auth.signOut();
   stopMusic();
   clearSlideshow();
   showScreen('intro');
 }
- 
-// Check for saved session on load
-window.addEventListener('DOMContentLoaded', () => {
-  const saved = localStorage.getItem('current_user');
-  if (saved) {
-    currentUser = JSON.parse(saved);
-  }
-});
  
 // ===== COUPLE PAGE =====
 const COUPLE_DATA = {
@@ -2336,20 +2322,20 @@ function stopMusic() {
 async function loadWishes(coupleId) {
   const list = document.getElementById('wishes-list');
   list.innerHTML = '<p style="color:var(--text-light);font-style:italic;text-align:center">Loading wishes…</p>';
-  let loaded = [];
-  if (supabaseClient) {
-    try {
-      const { data } = await supabaseClient.from('wishes').select('*').eq('couple_id', coupleId).order('created_at', { ascending: false });
-      if (data) {
-        wishes[coupleId] = data;
-        saveLocalData();
-        loaded = data;
-      }
-    } catch(e) {}
-  } else {
-    loaded = wishes[coupleId] || [];
+  if (!supabaseClient) {
+    renderWishes([], list);
+    showNotif('Backend not connected');
+    return;
   }
-  renderWishes(loaded, list);
+  try {
+    const { data, error } = await supabaseClient.from('wishes').select('*').eq('couple_id', coupleId).order('created_at', { ascending: false });
+    if (error) throw error;
+    wishes[coupleId] = data || [];
+  } catch (e) {
+    wishes[coupleId] = [];
+    showNotif('Could not load wishes from backend');
+  }
+  renderWishes(wishes[coupleId], list);
 }
  
 function renderWishes(list, container) {
@@ -2377,18 +2363,16 @@ async function submitWish() {
     created_at: new Date().toISOString(),
     date: new Date().toISOString()
   };
-  if (supabaseClient) {
-    try {
-      const { error } = await supabaseClient.from('wishes').insert([wish]);
-      if (error) throw error;
-    } catch(e) { showNotif('Saved locally (configure Supabase for full persistence)'); }
+  if (!supabaseClient) { showNotif('Backend is not connected'); return; }
+  try {
+    const { error } = await supabaseClient.from('wishes').insert([wish]);
+    if (error) throw error;
+  } catch (e) {
+    showNotif('Could not save wish to backend');
+    return;
   }
-  if (!wishes[currentCouple]) wishes[currentCouple] = [];
-  wishes[currentCouple].unshift(wish);
-  saveLocalData();
   input.value = '';
-  const list = document.getElementById('wishes-list');
-  renderWishes(wishes[currentCouple], list);
+  await loadWishes(currentCouple);
   burstConfetti(36);
   showNotif('Your wish has been sent ❤');
 }
@@ -2412,37 +2396,74 @@ function setAdminCouple(type, id, btn) {
  
 async function handleMediaUpload(event) {
   const files = Array.from(event.target.files);
+  if (!supabaseClient) { showNotif('Backend is not connected'); return; }
   for (const file of files) {
     try {
-      const url = await readFileAsDataUrl(file);
       const isVideo = file.type.startsWith('video/');
-      const item = { url, type: isVideo ? 'video' : 'image', name: file.name, local: true };
+      const { url, path } = await uploadToBucket('anniversary-media', file, `couple-${adminMediaCouple}`);
+      const item = { url, path, type: isVideo ? 'video' : 'image', name: file.name };
+      const { error } = await supabaseClient.from('media_assets').insert([{
+        couple_id: adminMediaCouple,
+        name: item.name,
+        url: item.url,
+        file_path: item.path,
+        type: item.type,
+        created_by: currentUser?.id || null
+      }]);
+      if (error) throw error;
       if (!media[adminMediaCouple]) media[adminMediaCouple] = [];
       media[adminMediaCouple].push(item);
-    } catch(e) {}
+    } catch(e) {
+      console.error(e);
+      showNotif(`Failed to upload ${file.name}`);
+    }
   }
-  saveLocalData();
   renderAdminThumbs();
-  showNotif(files.length + ' file(s) uploaded locally ✓');
+  if (currentCouple === adminMediaCouple) buildSlideshow(currentCouple);
+  showNotif(files.length + ' file(s) uploaded to backend ✓');
   event.target.value = '';
 }
 
 async function handleMusicUpload(event) {
   const files = Array.from(event.target.files);
+  if (!supabaseClient) { showNotif('Backend is not connected'); return; }
   for (const file of files) {
     try {
-      const url = await readFileAsDataUrl(file);
-      const item = { url, name: file.name.replace(/\.[^.]+$/, ''), local: true };
+      const { url, path } = await uploadToBucket('anniversary-music', file, `couple-${adminMusicCouple}`);
+      const item = { url, path, name: file.name.replace(/\.[^.]+$/, '') };
+      const { error } = await supabaseClient.from('songs').insert([{
+        couple_id: adminMusicCouple,
+        name: item.name,
+        url: item.url,
+        file_path: item.path,
+        created_by: currentUser?.id || null
+      }]);
+      if (error) throw error;
       if (!songs[adminMusicCouple]) songs[adminMusicCouple] = [];
       songs[adminMusicCouple].push(item);
-    } catch(e) {}
+    } catch(e) {
+      console.error(e);
+      showNotif(`Failed to upload ${file.name}`);
+    }
   }
-  saveLocalData();
   renderSongLists();
-  showNotif(files.length + ' song(s) added ✓');
+  if (currentCouple === adminMusicCouple) startMusic(currentCouple);
+  showNotif(files.length + ' song(s) uploaded to backend ✓');
   event.target.value = '';
 }
- 
+
+async function loadMediaAndSongs() {
+  if (!supabaseClient) return;
+  for (const id of [1, 2]) {
+    const [{ data: mediaData }, { data: songData }] = await Promise.all([
+      supabaseClient.from('media_assets').select('*').eq('couple_id', id).order('created_at', { ascending: true }),
+      supabaseClient.from('songs').select('*').eq('couple_id', id).order('created_at', { ascending: true })
+    ]);
+    media[id] = (mediaData || []).map(item => ({ url: item.url, type: item.type || 'image', name: item.name, path: item.file_path, id: item.id }));
+    songs[id] = (songData || []).map(item => ({ url: item.url, name: item.name, path: item.file_path, id: item.id }));
+  }
+}
+
 function renderAdminThumbs() {
   [1, 2].forEach(id => {
     const container = document.getElementById('media-thumbs-' + id);
@@ -2456,14 +2477,18 @@ function renderAdminThumbs() {
     `).join('');
   });
 }
- 
-function deleteMedia(coupleId, idx) {
+
+async function deleteMedia(coupleId, idx) {
+  const item = media[coupleId]?.[idx];
+  if (!item || !supabaseClient) return;
+  if (item.id) await supabaseClient.from('media_assets').delete().eq('id', item.id);
+  if (item.path) await supabaseClient.storage.from('anniversary-media').remove([item.path]);
   media[coupleId].splice(idx, 1);
-  saveLocalData();
   renderAdminThumbs();
+  if (currentCouple === coupleId) buildSlideshow(currentCouple);
   showNotif('Media removed');
 }
- 
+
 function renderSongLists() {
   [1, 2].forEach(id => {
     const container = document.getElementById('song-list-' + id);
@@ -2482,28 +2507,34 @@ function renderSongLists() {
     `).join('');
   });
 }
- 
+
 function previewSong(url) {
   const a = document.getElementById('bg-audio');
   a.src = url;
   a.volume = 0.4;
   a.play();
 }
- 
-function deleteSong(coupleId, idx) {
+
+async function deleteSong(coupleId, idx) {
+  const song = songs[coupleId]?.[idx];
+  if (!song || !supabaseClient) return;
+  if (song.id) await supabaseClient.from('songs').delete().eq('id', song.id);
+  if (song.path) await supabaseClient.storage.from('anniversary-music').remove([song.path]);
   songs[coupleId].splice(idx, 1);
-  saveLocalData();
   renderSongLists();
   showNotif('Song removed');
 }
- 
-function loadAdminWishes(coupleId, btn) {
+
+async function loadAdminWishes(coupleId, btn) {
   if (btn) {
     btn.closest('.admin-couple-select').querySelectorAll('button').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
   }
+  if (!supabaseClient) return;
   const container = document.getElementById('admin-wishes-list');
-  const w = wishes[coupleId] || [];
+  const { data } = await supabaseClient.from('wishes').select('*').eq('couple_id', coupleId).order('created_at', { ascending: false });
+  wishes[coupleId] = data || [];
+  const w = wishes[coupleId];
   if (w.length === 0) {
     container.innerHTML = '<p style="color:var(--text-light);font-size:0.85rem;font-style:italic">No wishes yet</p>';
     return;
@@ -2519,13 +2550,12 @@ function loadAdminWishes(coupleId, btn) {
   `).join('');
 }
 
-function renderRegisteredUsers() {
+async function renderRegisteredUsers() {
   const container = document.getElementById('registered-users-list');
   const countEl = document.getElementById('registered-count');
-  if (!container || !countEl) return;
-  const users = JSON.parse(localStorage.getItem('users') || '[]')
-    .map(u => ({ ...u, createdAt: u.createdAt || '—' }))
-    .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+  if (!container || !countEl || !supabaseClient) return;
+  const { data } = await supabaseClient.from('profiles').select('*').order('created_at', { ascending: false });
+  const users = data || [];
   countEl.textContent = `Total: ${users.length}`;
   if (users.length === 0) {
     container.innerHTML = '<p style="color:var(--text-light);font-size:0.85rem;font-style:italic">No users found yet.</p>';
@@ -2533,29 +2563,23 @@ function renderRegisteredUsers() {
   }
   container.innerHTML = users.map(user => `
     <div class="registered-item">
-      <div class="name">${escHtml(user.name || 'Unnamed User')} ${user.isAdmin ? '<span style="color:var(--warm-gold);font-size:0.72rem">(Admin)</span>' : ''}</div>
+      <div class="name">${escHtml(user.name || 'Unnamed User')} ${user.is_admin ? '<span style="color:var(--warm-gold);font-size:0.72rem">(Admin)</span>' : ''}</div>
       <div class="meta">${escHtml(user.email || 'No email')}</div>
-      <div class="meta">Joined: ${user.createdAt === '—' ? 'Earlier account' : formatDate(user.createdAt)}</div>
+      <div class="meta">Joined: ${formatDate(user.created_at)}</div>
     </div>
   `).join('');
 }
- 
-function deleteWish(coupleId, idx) {
+
+async function deleteWish(coupleId, idx) {
+  const wish = wishes[coupleId]?.[idx];
+  if (!wish || !supabaseClient) return;
+  if (wish.id) await supabaseClient.from('wishes').delete().eq('id', wish.id);
   wishes[coupleId].splice(idx, 1);
-  saveLocalData();
   loadAdminWishes(coupleId, null);
+  if (currentCouple === coupleId) loadWishes(coupleId);
   showNotif('Wish deleted');
 }
- 
-function saveSupabaseConfig() {
-  const url = document.getElementById('sb-url').value.trim();
-  const key = document.getElementById('sb-key').value.trim();
-  if (!url || !key) { document.getElementById('sb-status').textContent = 'Please enter both URL and key'; return; }
-  localStorage.setItem('sb_url', url);
-  localStorage.setItem('sb_key', key);
-  initSupabase();
-  document.getElementById('sb-status').textContent = supabaseClient ? '✓ Connected to Supabase successfully' : '⚠ Could not connect — check your credentials';
-}
+
  
 // ===== UTILS =====
 function showNotif(msg) {
