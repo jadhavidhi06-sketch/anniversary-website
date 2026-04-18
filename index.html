@@ -149,6 +149,21 @@
     max-width: 500px;
     margin: 0 auto;
   }
+
+  .intro-poem-box {
+    margin: 1.4rem auto 0;
+    max-width: 640px;
+    padding: 1rem 1.25rem;
+    border: 1px solid rgba(201,146,42,0.25);
+    background: rgba(13,5,0,0.45);
+    backdrop-filter: blur(6px);
+  }
+  .intro-poem-line {
+    line-height: 1.65;
+    transition: opacity 0.8s ease;
+  }
+  .intro-poem-line.en { color: var(--warm-cream); font-size: 1.02rem; }
+  .intro-poem-line.mr { color: var(--warm-amber); font-family: var(--font-devanagari); font-size: 0.98rem; margin-top: 0.4rem; }
  
   .intro-enter-btn {
     margin-top: 2.5rem;
@@ -505,8 +520,25 @@
   .slide img, .slide video {
     width: 100%;
     height: 100%;
+  }
+  .slide .slide-bg {
+    position: absolute;
+    inset: 0;
     object-fit: cover;
-    filter: brightness(0.35) saturate(0.7) sepia(0.2);
+    filter: brightness(0.25) blur(10px) saturate(0.8);
+    transform: scale(1.1);
+  }
+  .slide .slide-main {
+    position: relative;
+    z-index: 1;
+    object-fit: contain;
+    filter: brightness(0.72) saturate(0.95);
+    padding: clamp(0.5rem, 2vw, 1.2rem);
+  }
+  .slide video {
+    object-fit: contain;
+    filter: brightness(0.62) saturate(0.85);
+    padding: clamp(0.5rem, 2vw, 1.2rem);
   }
  
   .slideshow-overlay {
@@ -520,6 +552,10 @@
     position: relative;
     z-index: 3;
     padding: 2rem;
+    background: linear-gradient(180deg, rgba(13,5,0,0.55), rgba(13,5,0,0.22));
+    border: 1px solid rgba(201,146,42,0.2);
+    max-width: min(92vw, 760px);
+    backdrop-filter: blur(7px);
   }
  
   .couple-hero-years {
@@ -566,6 +602,13 @@
     margin-right: auto;
     line-height: 1.8;
     opacity: 0.9;
+  }
+  .couple-hero-verse .poem-en { color: var(--warm-cream); }
+  .couple-hero-verse .poem-mr {
+    margin-top: 0.65rem;
+    color: var(--warm-amber);
+    font-family: var(--font-devanagari);
+    font-size: 0.97em;
   }
  
   .scroll-hint {
@@ -648,9 +691,10 @@
  
   .gallery-item img, .gallery-item video {
     width: 100%; height: 100%;
-    object-fit: cover;
+    object-fit: contain;
+    background: #160900;
     transition: transform 0.8s ease, filter 0.5s ease;
-    filter: saturate(0.7) brightness(0.85);
+    filter: saturate(0.78) brightness(0.9);
   }
   .gallery-item:hover img, .gallery-item:hover video {
     transform: scale(1.06);
@@ -988,6 +1032,14 @@
   .song-item .song-name-item { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
  
   .admin-wishes-list { display: flex; flex-direction: column; gap: 0.75rem; max-height: 300px; overflow-y: auto; }
+  .registered-list { display: flex; flex-direction: column; gap: 0.6rem; max-height: 320px; overflow-y: auto; }
+  .registered-item {
+    background: rgba(201,146,42,0.06);
+    border: 1px solid rgba(201,146,42,0.14);
+    padding: 0.7rem 0.8rem;
+  }
+  .registered-item .name { color: var(--warm-cream); font-size: 0.95rem; }
+  .registered-item .meta { color: var(--blush); font-size: 0.82rem; margin-top: 0.2rem; }
   .admin-wish-item {
     display: flex;
     gap: 0.75rem;
@@ -1024,6 +1076,25 @@
   .notification.show {
     opacity: 1;
     transform: translateX(-50%) translateY(0);
+  }
+
+  .confetti-layer {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 999;
+    overflow: hidden;
+  }
+  .confetti {
+    position: absolute;
+    top: -10vh;
+    width: 8px;
+    height: 16px;
+    opacity: 0.95;
+    animation: confetti-fall linear forwards;
+  }
+  @keyframes confetti-fall {
+    to { transform: translateY(115vh) rotate(720deg); opacity: 0.15; }
   }
  
   /* Lightbox */
@@ -1064,6 +1135,16 @@
     .gallery-masonry { grid-template-columns: repeat(2, 1fr); }
     .media-thumbs { grid-template-columns: repeat(3, 1fr); }
     .couple-hero-title { font-size: 2.5rem; }
+    .top-bar { flex-wrap: wrap; gap: 0.75rem; }
+    .top-bar-right { width: 100%; justify-content: space-between; }
+    .page-nav { padding: 0.85rem 0.75rem; }
+    .page-nav-links { gap: 0.75rem; }
+    .page-nav-links a { font-size: 0.74rem; }
+    .couple-hero-content { padding: 1.1rem; max-width: 94vw; }
+    .couple-hero-verse { font-size: 0.95rem; line-height: 1.6; }
+    .intro-poem-box { padding: 0.8rem 0.9rem; }
+    .intro-poem-line.en { font-size: 0.95rem; }
+    .intro-poem-line.mr { font-size: 0.9rem; }
   }
  
   /* Fade animations */
@@ -1154,6 +1235,7 @@
  
 <div class="particle-bg" id="particle-bg"></div>
 <div id="notification" class="notification"></div>
+<div id="confetti-layer" class="confetti-layer"></div>
  
 <!-- ===== INTRO SCREEN ===== -->
 <section class="screen active" id="intro">
@@ -1168,6 +1250,10 @@
     <p class="intro-subtitle" id="intro-subtitle">प्रेमाचा अनंत उत्सव</p>
     <div class="intro-divider"></div>
     <p class="intro-verse" id="intro-verse">Some love stories don't have endings —<br>they simply find new ways to begin again.</p>
+    <div class="intro-poem-box">
+      <div class="intro-poem-line en" id="home-poem-en"></div>
+      <div class="intro-poem-line mr" id="home-poem-mr"></div>
+    </div>
     <div class="intro-enter-btn">
       <button class="btn-primary" onclick="goToAuth()" id="enter-btn">Enter &rarr;</button>
     </div>
@@ -1381,6 +1467,16 @@
         <p style="color:var(--text-light);font-size:0.85rem;font-style:italic">Loading wishes…</p>
       </div>
     </div>
+
+    <!-- Registered People -->
+    <div class="admin-card">
+      <h3>👥 Registered People</h3>
+      <p style="color:var(--text-light);font-size:0.85rem;margin-bottom:0.7rem">All users who signed up for the celebration.</p>
+      <div style="color:var(--warm-gold);font-size:0.82rem;letter-spacing:0.06em;margin-bottom:0.55rem" id="registered-count">Total: 0</div>
+      <div class="registered-list" id="registered-users-list">
+        <p style="color:var(--text-light);font-size:0.85rem;font-style:italic">No users found yet.</p>
+      </div>
+    </div>
  
     <!-- Supabase Setup Guide -->
     <div class="admin-card" style="grid-column:1/-1">
@@ -1433,9 +1529,13 @@ let slideshowTimer = null;
 let currentSlide = 0;
 let adminMediaCouple = 1;
 let adminMusicCouple = 1;
+let poemTimer = null;
+let homePoemTimer = null;
+let currentPoemIndex = 0;
+let currentHomePoemIndex = 0;
  
 // Demo admin credentials (also stored in localStorage for persistence)
-const ADMIN_USER = { email: 'admin@anniversary.love', password: 'vidhi2816', name: 'Admin', isAdmin: true };
+const ADMIN_USER = { email: 'admin@anniversary.love', password: 'vidhi2816', name: 'Admin', isAdmin: true, createdAt: '2024-01-01T00:00:00.000Z' };
  
 // ===== INIT =====
 window.addEventListener('load', () => {
@@ -1452,6 +1552,7 @@ window.addEventListener('load', () => {
     document.getElementById('loading-overlay').classList.add('hidden');
   }, 800);
   initIntersectionObserver();
+  startHomePoemRotation();
 });
  
 function initSupabase() {
@@ -1557,6 +1658,21 @@ const STRINGS = {
     wish_btn: 'शुभेच्छा पाठवा ❤',
   }
 };
+
+const HOME_POEMS = [
+  {
+    en: 'In an arranged beginning, two strangers were trusted with one shared sky.',
+    mr: 'जुळवून आणलेल्या नात्यात, दोन अनोळखी मनांना एकच आकाश दिले गेले.'
+  },
+  {
+    en: 'They learned love slowly—through responsibility, respect, and quiet patience.',
+    mr: 'त्यांनी प्रेम हळूहळू शिकले—जबाबदारीतून, आदरातून आणि शांत संयमातून.'
+  },
+  {
+    en: 'Today their journey shines, not by chance, but by choosing each other every day.',
+    mr: 'आज त्यांचा प्रवास उजळतो, योगायोगाने नव्हे तर रोज एकमेकांना निवडल्यामुळे.'
+  }
+];
  
 function setLang(lang) {
   currentLang = lang;
@@ -1596,6 +1712,10 @@ function applyStrings() {
   const wi = document.getElementById('wish-input');
   if (wi) wi.placeholder = s.wish_placeholder;
   setText('wish-btn', s.wish_btn, true);
+  updateHomePoem();
+  if (document.getElementById('couple-page').classList.contains('active')) {
+    renderCurrentCouplePoem();
+  }
 }
  
 function setText(id, val, html = false) {
@@ -1621,6 +1741,7 @@ function showScreen(id) {
     const keyEl = document.getElementById('sb-key');
     if (urlEl) urlEl.value = localStorage.getItem('sb_url') || '';
     if (keyEl) keyEl.value = localStorage.getItem('sb_key') || '';
+    renderRegisteredUsers();
   }
   if (id === 'couple-select') {
     const s = STRINGS[currentLang];
@@ -1676,7 +1797,7 @@ function doRegister() {
   if (pass.length < 6) { setAuthMsg('Password must be at least 6 characters', 'error'); return; }
   let users = JSON.parse(localStorage.getItem('users') || '[]');
   if (users.find(u => u.email === email)) { setAuthMsg('Email already registered', 'error'); return; }
-  const user = { email, password: pass, name, isAdmin: false };
+  const user = { email, password: pass, name, isAdmin: false, createdAt: new Date().toISOString() };
   users.push(user);
   localStorage.setItem('users', JSON.stringify(users));
   currentUser = user;
@@ -1737,6 +1858,37 @@ const COUPLE_DATA = {
     verse_mr: '"तुझ्यासोबतचे प्रत्येक वर्ष एक नवा अध्याय,<br>प्रत्येक दिवस हा सुंदर प्रवास<br>आणखी मौल्यवान करतो."',
   }
 };
+
+const COUPLE_POEMS = {
+  1: [
+    {
+      en: 'Their arranged beginning became a sanctuary where duty slowly turned into devotion.',
+      mr: 'जुळवून आलेल्या सुरुवातीने असे घर दिले, जिथे कर्तव्य हळूहळू समर्पणात बदलले.'
+    },
+    {
+      en: 'He learned her silences, she held his storms—this is how forever was built.',
+      mr: 'त्याने तिच्या शांततेचा अर्थ समजला, तिने त्याच्या वादळांना कवटाळले—असे कायमपण घडले.'
+    },
+    {
+      en: 'Twenty-five years later, their love feels less like a promise and more like prayer.',
+      mr: 'पंचवीस वर्षांनंतर त्यांचे प्रेम वचनासारखे नाही, तर प्रार्थनेसारखे वाटते.'
+    }
+  ],
+  2: [
+    {
+      en: 'Arranged by families, accepted by hearts—two lives found one rhythm.',
+      mr: 'कुटुंबांनी जुळवले, मनांनी स्वीकारले—दोन आयुष्यांना एकच ताल सापडला.'
+    },
+    {
+      en: 'They did not fall in love once; they kept rising in love through every season.',
+      mr: 'ते एकदाच प्रेमात पडले नाहीत; प्रत्येक ऋतूत पुन्हा पुन्हा प्रेमात उभे राहिले.'
+    },
+    {
+      en: 'In ten years, they turned ordinary days into gentle, unforgettable poetry.',
+      mr: 'दहा वर्षांत त्यांनी साध्या दिवसांनाही हळुवार, अविस्मरणीय कवितेत रूपांतरित केले.'
+    }
+  ]
+};
  
 function openCouplePage(id) {
   currentCouple = id;
@@ -1745,7 +1897,8 @@ function openCouplePage(id) {
   setText('hero-title', lang === 'mr' ? d.name_mr : d.name_en);
   setText('hero-years', lang === 'mr' ? d.years_mr : d.years_en);
   setText('hero-sub', lang === 'mr' ? d.sub_mr : d.sub_en);
-  document.getElementById('hero-verse').innerHTML = lang === 'mr' ? d.verse_mr : d.verse_en;
+  currentPoemIndex = 0;
+  renderCurrentCouplePoem();
   showScreen('couple-page');
   buildSlideshow(id);
   buildGallery(id);
@@ -1756,6 +1909,8 @@ function openCouplePage(id) {
   setTimeout(() => {
     document.querySelectorAll('#couple-page .fade-in').forEach(el => el.classList.add('visible'));
   }, 300);
+  startCouplePoemRotation();
+  burstConfetti(65);
 }
  
 // ===== SLIDESHOW =====
@@ -1789,9 +1944,15 @@ function buildSlideshow(coupleId) {
         v.playsInline = true;
         slide.appendChild(v);
       } else {
+        const bg = document.createElement('img');
+        bg.src = item.url;
+        bg.alt = '';
+        bg.className = 'slide-bg';
+        slide.appendChild(bg);
         const img = document.createElement('img');
         img.src = item.url;
         img.alt = '';
+        img.className = 'slide-main';
         slide.appendChild(img);
       }
       container.appendChild(slide);
@@ -1814,6 +1975,7 @@ function startSlideshow(container) {
  
 function clearSlideshow() {
   clearInterval(slideshowTimer);
+  stopCouplePoemRotation();
   document.getElementById('couple-slideshow').innerHTML = '';
 }
  
@@ -1990,6 +2152,7 @@ async function submitWish() {
   input.value = '';
   const list = document.getElementById('wishes-list');
   renderWishes(wishes[currentCouple], list);
+  burstConfetti(36);
   showNotif('Your wish has been sent ❤');
 }
  
@@ -2114,6 +2277,27 @@ function loadAdminWishes(coupleId, btn) {
     </div>
   `).join('');
 }
+
+function renderRegisteredUsers() {
+  const container = document.getElementById('registered-users-list');
+  const countEl = document.getElementById('registered-count');
+  if (!container || !countEl) return;
+  const users = JSON.parse(localStorage.getItem('users') || '[]')
+    .map(u => ({ ...u, createdAt: u.createdAt || '—' }))
+    .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+  countEl.textContent = `Total: ${users.length}`;
+  if (users.length === 0) {
+    container.innerHTML = '<p style="color:var(--text-light);font-size:0.85rem;font-style:italic">No users found yet.</p>';
+    return;
+  }
+  container.innerHTML = users.map(user => `
+    <div class="registered-item">
+      <div class="name">${escHtml(user.name || 'Unnamed User')} ${user.isAdmin ? '<span style="color:var(--warm-gold);font-size:0.72rem">(Admin)</span>' : ''}</div>
+      <div class="meta">${escHtml(user.email || 'No email')}</div>
+      <div class="meta">Joined: ${user.createdAt === '—' ? 'Earlier account' : formatDate(user.createdAt)}</div>
+    </div>
+  `).join('');
+}
  
 function deleteWish(coupleId, idx) {
   wishes[coupleId].splice(idx, 1);
@@ -2155,6 +2339,62 @@ function initIntersectionObserver() {
     entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
   }, { threshold: 0.1 });
   document.querySelectorAll('.fade-in').forEach(el => obs.observe(el));
+}
+
+function updateHomePoem() {
+  const pair = HOME_POEMS[currentHomePoemIndex % HOME_POEMS.length];
+  setText('home-poem-en', pair.en);
+  setText('home-poem-mr', pair.mr);
+}
+
+function startHomePoemRotation() {
+  updateHomePoem();
+  clearInterval(homePoemTimer);
+  homePoemTimer = setInterval(() => {
+    currentHomePoemIndex = (currentHomePoemIndex + 1) % HOME_POEMS.length;
+    updateHomePoem();
+  }, 5500);
+}
+
+function renderCurrentCouplePoem() {
+  const verse = document.getElementById('hero-verse');
+  const lines = COUPLE_POEMS[currentCouple] || [];
+  if (!verse || lines.length === 0) return;
+  const pair = lines[currentPoemIndex % lines.length];
+  verse.innerHTML = `<div class="poem-en">${escHtml(pair.en)}</div><div class="poem-mr">${escHtml(pair.mr)}</div>`;
+}
+
+function startCouplePoemRotation() {
+  clearInterval(poemTimer);
+  poemTimer = setInterval(() => {
+    const lines = COUPLE_POEMS[currentCouple] || [];
+    if (lines.length < 2) return;
+    currentPoemIndex = (currentPoemIndex + 1) % lines.length;
+    renderCurrentCouplePoem();
+  }, 6200);
+}
+
+function stopCouplePoemRotation() {
+  clearInterval(poemTimer);
+}
+
+function burstConfetti(count = 48) {
+  const layer = document.getElementById('confetti-layer');
+  if (!layer) return;
+  const colors = ['#e8b84b', '#c9922a', '#f2ddd5', '#b5705a', '#f9f1e3'];
+  for (let i = 0; i < count; i++) {
+    const piece = document.createElement('span');
+    piece.className = 'confetti';
+    piece.style.left = (Math.random() * 100) + 'vw';
+    piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+    piece.style.animationDuration = (2.5 + Math.random() * 2.7) + 's';
+    piece.style.animationDelay = (Math.random() * 0.5) + 's';
+    piece.style.transform = `rotate(${Math.random() * 180}deg)`;
+    piece.style.width = (6 + Math.random() * 5) + 'px';
+    piece.style.height = (10 + Math.random() * 12) + 'px';
+    layer.appendChild(piece);
+    setTimeout(() => piece.remove(), 5600);
+  }
 }
 </script>
  
