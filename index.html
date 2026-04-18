@@ -1992,6 +1992,43 @@ async function submitWish() {
   renderWishes(wishes[currentCouple], list);
   showNotif('Your wish has been sent ❤');
 }
+
+// ===== STORAGE HELPERS =====
+async function uploadToSupabase(file, bucket, coupleId) {
+  if (!supabaseClient) throw new Error('Supabase client is not initialized');
+  const path = `couple_${coupleId}/${Date.now()}_${file.name}`;
+  const { error } = await supabaseClient.storage
+    .from(bucket)
+    .upload(path, file, { upsert: true });
+  if (error) throw error;
+  const { data: { publicUrl } } = supabaseClient.storage.from(bucket).getPublicUrl(path);
+  return { url: publicUrl, path };
+}
+
+async function saveUploadedMediaMetadata(coupleId, file, isVideo, url, path) {
+  if (!supabaseClient) return;
+  const payload = [{
+    couple_id: coupleId,
+    name: file.name,
+    url,
+    storage_path: path,
+    type: isVideo ? 'video' : 'image'
+  }];
+  const { error } = await supabaseClient.from('media').insert(payload);
+  if (error) throw error;
+}
+
+async function saveUploadedSongMetadata(coupleId, file, url, path) {
+  if (!supabaseClient) return;
+  const payload = [{
+    couple_id: coupleId,
+    name: file.name.replace(/\.[^.]+$/, ''),
+    url,
+    storage_path: path
+  }];
+  const { error } = await supabaseClient.from('songs').insert(payload);
+  if (error) throw error;
+}
  
 // ===== ADMIN =====
 function setAdminCouple(type, id, btn) {
@@ -2010,29 +2047,60 @@ function setAdminCouple(type, id, btn) {
   }
 }
  
-function handleMediaUpload(event) {
+async function handleMediaUpload(event) {
   const files = Array.from(event.target.files);
-  files.forEach(file => {
-    const url = URL.createObjectURL(file);
+  for (const file of files) {
     const isVideo = file.type.startsWith('video/');
-    const item = { url, type: isVideo ? 'video' : 'image', name: file.name, local: true };
+    let item = null;
+    if (supabaseClient) {
+      try {
+        // Upgrading to Supabase Storage (for full file upload persistence):
+        // const { url, path } = await uploadToSupabase(file, 'media', adminMediaCouple);
+        // await supabaseClient.from('media').insert([{ couple_id: adminMediaCouple, name: file.name, url, storage_path: path, type: isVideo ? 'video' : 'image' }]);
+        const { url, path } = await uploadToSupabase(file, 'media', adminMediaCouple);
+        await saveUploadedMediaMetadata(adminMediaCouple, file, isVideo, url, path);
+        item = { url, storage_path: path, type: isVideo ? 'video' : 'image', name: file.name, local: false };
+      } catch (e) {
+        showNotif('Supabase upload failed for ' + file.name + ' — saved locally instead');
+      }
+    }
+    if (!item) {
+      // Local preview fallback (session/browser persistence only):
+      // const url = URL.createObjectURL(file);
+      const url = URL.createObjectURL(file);
+      item = { url, type: isVideo ? 'video' : 'image', name: file.name, local: true };
+    }
     if (!media[adminMediaCouple]) media[adminMediaCouple] = [];
     media[adminMediaCouple].push(item);
-  });
+  }
   saveLocalData();
   renderAdminThumbs();
-  showNotif(files.length + ' file(s) uploaded locally ✓');
+  showNotif(files.length + ' file(s) uploaded ✓');
   event.target.value = '';
 }
  
-function handleMusicUpload(event) {
+async function handleMusicUpload(event) {
   const files = Array.from(event.target.files);
-  files.forEach(file => {
-    const url = URL.createObjectURL(file);
-    const item = { url, name: file.name.replace(/\.[^.]+$/, ''), local: true };
+  for (const file of files) {
+    let item = null;
+    if (supabaseClient) {
+      try {
+        const { url, path } = await uploadToSupabase(file, 'songs', adminMusicCouple);
+        await saveUploadedSongMetadata(adminMusicCouple, file, url, path);
+        item = { url, storage_path: path, name: file.name.replace(/\.[^.]+$/, ''), local: false };
+      } catch (e) {
+        showNotif('Supabase upload failed for ' + file.name + ' — saved locally instead');
+      }
+    }
+    if (!item) {
+      // Local preview fallback (session/browser persistence only):
+      // const url = URL.createObjectURL(file);
+      const url = URL.createObjectURL(file);
+      item = { url, name: file.name.replace(/\.[^.]+$/, ''), local: true };
+    }
     if (!songs[adminMusicCouple]) songs[adminMusicCouple] = [];
     songs[adminMusicCouple].push(item);
-  });
+  }
   saveLocalData();
   renderSongLists();
   showNotif(files.length + ' song(s) added ✓');
@@ -2160,4 +2228,3 @@ function initIntersectionObserver() {
  
 </body>
 </html>
- 
