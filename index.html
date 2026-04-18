@@ -1,0 +1,2230 @@
+
+
+I want your assistance in building a beautiful, personalized web application as a 25th wedding anniversary gift for my parents and a 10th anniversary gift for my aunt (Mama) and uncle (Mami). The website should be warm, welcoming, romantic, and deeply emotional, not cliché. Website Concept and User
+
+pasted
+
+7:40 PM
+
+Reading frontend design skill
+Reading frontend design skill
+This is a beautiful and meaningful project! I'll build you a complete, stunning anniversary website. Given the complexity (full-stack with auth, database, file uploads, admin panel), I'll create the complete frontend as a single polished HTML artifact, plus a separate guide for the Supabase backend setup.
+
+Let me build this now — warm, cinematic, deeply emotional.
+
+Now I'll build the complete website. This will be a large, beautiful single-page application with all the features described.
+
+
+Complete anniversary website - full HTML/CSS/JS with Supabase integration
+Complete anniversary website - full HTML/CSS/JS with Supabase integration
+
+Complete anniversary website - full HTML/CSS/JS with Supabase integration
+index.html
+Done
+Now let me create the Supabase setup guide:
+
+
+Created a file, read a file
+Created a file, read a file
+
+Complete Supabase backend setup guide with SQL schema
+SETUP_GUIDE.md
+
+Presented 2 files
+Done
+Here's your complete anniversary website! 🌸 Here's everything that's built in:
+
+The website has all of this:
+
+Cinematic intro — floating petals, warm amber glow, fade-up animations, ornamental typography in Playfair Display and Cormorant Garamond
+Full Marathi/English toggle — every word on every screen switches instantly
+Login / Register — admin pre-seeded with admin@anniversary.love / vidhi2816; new visitors can create their own accounts
+Couple selection — two elegant cards (Baba & Aai · 25 years, Mama & Mami · 10 years)
+Hero slideshow per couple — auto-cycling, with a cinematic dark overlay and romantic verse (both languages)
+Photo/video gallery — masonry grid with lightbox; placeholder until you upload
+Background music player — fixed bar with play/pause, next/prev, volume; separate playlists per couple
+Wishing Box — everyone's wishes appear with their name and date; messages persist locally and sync to Supabase when configured
+Admin panel — upload photos/videos for either couple, upload songs, moderate/delete wishes, configure Supabase
+Fully mobile-responsive throughout
+To make wishes permanent for all visitors, follow the SETUP_GUIDE.md — it walks you through a free Supabase + Vercel deployment in about 15 minutes. No coding required.
+
+This will be a beautiful gift. 💛
+
+
+Index
+Code · HTML 
+
+Setup guide
+Document · MD 
+
+Want to be notified when Claude responds?
+
+
+
+Claude is AI and can make mistakes. Please double-check responses.
+Index · HTML
+Copy
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Celebrations of Love | प्रेमाचा उत्सव</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Noto+Sans+Devanagari:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --warm-deep: #1a0a00;
+    --warm-dark: #2d1200;
+    --warm-brown: #6b3a1f;
+    --warm-gold: #c9922a;
+    --warm-amber: #e8b84b;
+    --warm-cream: #f9f1e3;
+    --warm-ivory: #fdf8f0;
+    --blush: #e8c4b8;
+    --rose: #b5705a;
+    --soft-pink: #f2ddd5;
+    --text-dark: #1a0a00;
+    --text-mid: #5c3220;
+    --text-light: #9e7060;
+    --font-display: 'Playfair Display', serif;
+    --font-body: 'Cormorant Garamond', serif;
+    --font-devanagari: 'Noto Sans Devanagari', sans-serif;
+    --transition: all 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+ 
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+ 
+  body {
+    background: var(--warm-deep);
+    color: var(--warm-cream);
+    font-family: var(--font-body);
+    overflow-x: hidden;
+    min-height: 100vh;
+  }
+ 
+  /* ===== SCREENS ===== */
+  .screen {
+    display: none;
+    min-height: 100vh;
+    position: relative;
+  }
+  .screen.active { display: flex; flex-direction: column; }
+ 
+  /* ===== PARTICLES / BG ===== */
+  .particle-bg {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 0;
+    overflow: hidden;
+  }
+  .particle-bg::before {
+    content: '';
+    position: absolute;
+    top: -50%; left: -50%;
+    width: 200%; height: 200%;
+    background: radial-gradient(ellipse at 30% 40%, rgba(201,146,42,0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 70% 60%, rgba(181,112,90,0.06) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 20%, rgba(232,184,75,0.05) 0%, transparent 40%);
+    animation: float-bg 20s ease-in-out infinite alternate;
+  }
+  @keyframes float-bg {
+    0% { transform: translate(0,0) rotate(0deg); }
+    100% { transform: translate(-2%, 2%) rotate(1deg); }
+  }
+ 
+  .petal {
+    position: absolute;
+    width: 6px; height: 10px;
+    background: rgba(232,184,75,0.15);
+    border-radius: 50% 0 50% 0;
+    animation: fall linear infinite;
+  }
+  @keyframes fall {
+    0% { transform: translateY(-20px) rotate(0deg); opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 0.5; }
+    100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+  }
+ 
+  /* ===== INTRO SCREEN ===== */
+  #intro {
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    background: radial-gradient(ellipse at center, #2d1200 0%, #0d0500 100%);
+  }
+ 
+  .intro-content {
+    position: relative;
+    z-index: 2;
+    padding: 2rem;
+    max-width: 700px;
+  }
+ 
+  .intro-divider {
+    width: 60px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--warm-gold), transparent);
+    margin: 1.5rem auto;
+    animation: grow-line 2s ease forwards;
+    transform-origin: center;
+  }
+  @keyframes grow-line { from { width: 0; opacity: 0; } to { width: 60px; opacity: 1; } }
+ 
+  .intro-ornament {
+    font-size: 2rem;
+    color: var(--warm-gold);
+    opacity: 0;
+    animation: fade-up 1.5s ease 0.5s forwards;
+    letter-spacing: 0.3em;
+  }
+ 
+  .intro-title {
+    font-family: var(--font-display);
+    font-size: clamp(2.5rem, 8vw, 5rem);
+    font-weight: 400;
+    font-style: italic;
+    color: var(--warm-cream);
+    line-height: 1.1;
+    opacity: 0;
+    animation: fade-up 1.5s ease 0.8s forwards;
+    text-shadow: 0 0 60px rgba(201,146,42,0.3);
+  }
+ 
+  .intro-subtitle {
+    font-family: var(--font-devanagari);
+    font-size: clamp(1rem, 3vw, 1.4rem);
+    color: var(--warm-amber);
+    font-weight: 300;
+    letter-spacing: 0.1em;
+    opacity: 0;
+    animation: fade-up 1.5s ease 1.2s forwards;
+    margin-top: 0.5rem;
+  }
+ 
+  .intro-verse {
+    font-size: clamp(1rem, 2.5vw, 1.2rem);
+    font-style: italic;
+    color: var(--blush);
+    line-height: 1.8;
+    opacity: 0;
+    animation: fade-up 1.5s ease 1.6s forwards;
+    max-width: 500px;
+    margin: 0 auto;
+  }
+ 
+  .intro-enter-btn {
+    margin-top: 2.5rem;
+    opacity: 0;
+    animation: fade-up 1.5s ease 2.2s forwards;
+  }
+ 
+  .lang-toggle {
+    display: inline-flex;
+    gap: 0;
+    border: 1px solid rgba(201,146,42,0.4);
+    border-radius: 50px;
+    overflow: hidden;
+    margin-bottom: 2rem;
+  }
+  .lang-toggle button {
+    background: transparent;
+    border: none;
+    color: var(--warm-amber);
+    padding: 0.5rem 1.5rem;
+    cursor: pointer;
+    font-family: var(--font-devanagari);
+    font-size: 0.9rem;
+    transition: var(--transition);
+  }
+  .lang-toggle button.active {
+    background: var(--warm-gold);
+    color: var(--warm-deep);
+  }
+ 
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+ 
+  .btn-primary {
+    display: inline-block;
+    padding: 0.85rem 2.5rem;
+    background: transparent;
+    border: 1px solid var(--warm-gold);
+    color: var(--warm-amber);
+    font-family: var(--font-body);
+    font-size: 1.1rem;
+    letter-spacing: 0.15em;
+    cursor: pointer;
+    transition: var(--transition);
+    text-transform: uppercase;
+    position: relative;
+    overflow: hidden;
+  }
+  .btn-primary::before {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%;
+    width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(201,146,42,0.2), transparent);
+    transition: left 0.5s ease;
+  }
+  .btn-primary:hover::before { left: 100%; }
+  .btn-primary:hover {
+    background: rgba(201,146,42,0.1);
+    color: var(--warm-cream);
+    box-shadow: 0 0 30px rgba(201,146,42,0.2);
+  }
+ 
+  /* ===== AUTH SCREEN ===== */
+  #auth {
+    justify-content: center;
+    align-items: center;
+    background: radial-gradient(ellipse at 30% 70%, #200d04 0%, #0d0500 100%);
+  }
+ 
+  .auth-card {
+    background: rgba(45,18,0,0.8);
+    border: 1px solid rgba(201,146,42,0.2);
+    backdrop-filter: blur(20px);
+    padding: 3rem;
+    width: 100%;
+    max-width: 420px;
+    margin: 1rem;
+    position: relative;
+    z-index: 2;
+  }
+ 
+  .auth-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    border: 1px solid rgba(201,146,42,0.1);
+    margin: 6px;
+    pointer-events: none;
+  }
+ 
+  .auth-logo {
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+  .auth-logo .ornament { color: var(--warm-gold); font-size: 1.5rem; letter-spacing: 0.3em; }
+  .auth-logo h2 {
+    font-family: var(--font-display);
+    font-size: 1.8rem;
+    font-weight: 400;
+    font-style: italic;
+    color: var(--warm-cream);
+    margin: 0.5rem 0;
+  }
+ 
+  .tab-switcher {
+    display: flex;
+    margin-bottom: 2rem;
+    border-bottom: 1px solid rgba(201,146,42,0.2);
+  }
+  .tab-switcher button {
+    flex: 1;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--text-light);
+    padding: 0.75rem;
+    cursor: pointer;
+    font-family: var(--font-body);
+    font-size: 1rem;
+    letter-spacing: 0.05em;
+    transition: var(--transition);
+    margin-bottom: -1px;
+  }
+  .tab-switcher button.active {
+    color: var(--warm-amber);
+    border-bottom-color: var(--warm-gold);
+  }
+ 
+  .form-group { margin-bottom: 1.25rem; }
+  .form-group label {
+    display: block;
+    color: var(--text-light);
+    font-size: 0.85rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 0.4rem;
+  }
+  .form-group input {
+    width: 100%;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(201,146,42,0.2);
+    color: var(--warm-cream);
+    padding: 0.75rem 1rem;
+    font-family: var(--font-body);
+    font-size: 1rem;
+    outline: none;
+    transition: var(--transition);
+  }
+  .form-group input:focus {
+    border-color: var(--warm-gold);
+    background: rgba(201,146,42,0.05);
+  }
+ 
+  .auth-btn {
+    width: 100%;
+    padding: 1rem;
+    background: linear-gradient(135deg, rgba(201,146,42,0.3), rgba(181,112,90,0.2));
+    border: 1px solid var(--warm-gold);
+    color: var(--warm-amber);
+    font-family: var(--font-body);
+    font-size: 1.1rem;
+    letter-spacing: 0.15em;
+    cursor: pointer;
+    transition: var(--transition);
+    text-transform: uppercase;
+    margin-top: 0.5rem;
+  }
+  .auth-btn:hover {
+    background: linear-gradient(135deg, rgba(201,146,42,0.5), rgba(181,112,90,0.3));
+    color: var(--warm-cream);
+  }
+ 
+  .auth-msg {
+    text-align: center;
+    margin-top: 1rem;
+    font-size: 0.9rem;
+    min-height: 1.2rem;
+  }
+  .auth-msg.error { color: #e07070; }
+  .auth-msg.success { color: #90d890; }
+ 
+  /* ===== COUPLE SELECT ===== */
+  #couple-select {
+    background: radial-gradient(ellipse at 60% 30%, #200d04 0%, #0d0500 100%);
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1rem;
+  }
+ 
+  .select-header {
+    text-align: center;
+    margin-bottom: 3rem;
+    position: relative;
+    z-index: 2;
+  }
+  .select-header .greeting {
+    color: var(--warm-amber);
+    font-size: 0.9rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+  }
+  .select-header h1 {
+    font-family: var(--font-display);
+    font-size: clamp(1.8rem, 5vw, 3rem);
+    font-weight: 400;
+    font-style: italic;
+    color: var(--warm-cream);
+  }
+ 
+  .couple-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 2rem;
+    max-width: 800px;
+    width: 100%;
+    position: relative;
+    z-index: 2;
+  }
+ 
+  .couple-card {
+    position: relative;
+    cursor: pointer;
+    overflow: hidden;
+    border: 1px solid rgba(201,146,42,0.2);
+    transition: var(--transition);
+    background: rgba(45,18,0,0.6);
+    padding: 2.5rem 2rem;
+    text-align: center;
+  }
+  .couple-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(201,146,42,0.05), rgba(181,112,90,0.05));
+    opacity: 0;
+    transition: var(--transition);
+  }
+  .couple-card:hover::before { opacity: 1; }
+  .couple-card:hover {
+    border-color: var(--warm-gold);
+    transform: translateY(-4px);
+    box-shadow: 0 20px 60px rgba(201,146,42,0.15);
+  }
+ 
+  .couple-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    display: block;
+    filter: hue-rotate(0deg) sepia(0.3);
+  }
+ 
+  .couple-years {
+    display: inline-block;
+    padding: 0.3rem 1.2rem;
+    border: 1px solid rgba(201,146,42,0.4);
+    color: var(--warm-gold);
+    font-size: 0.8rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+  }
+ 
+  .couple-name {
+    font-family: var(--font-display);
+    font-size: 1.8rem;
+    font-weight: 400;
+    font-style: italic;
+    color: var(--warm-cream);
+    margin-bottom: 0.75rem;
+  }
+ 
+  .couple-desc {
+    color: var(--blush);
+    font-size: 1rem;
+    font-style: italic;
+    line-height: 1.7;
+    opacity: 0.85;
+  }
+ 
+  .top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 2rem;
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    background: linear-gradient(to bottom, rgba(13,5,0,0.9) 0%, transparent 100%);
+  }
+  .top-bar .logo {
+    font-family: var(--font-display);
+    font-size: 1rem;
+    font-style: italic;
+    color: var(--warm-gold);
+    letter-spacing: 0.05em;
+  }
+  .top-bar-right { display: flex; gap: 1rem; align-items: center; }
+  .top-bar button {
+    background: none;
+    border: 1px solid rgba(201,146,42,0.3);
+    color: var(--warm-amber);
+    padding: 0.4rem 1rem;
+    cursor: pointer;
+    font-family: var(--font-body);
+    font-size: 0.85rem;
+    transition: var(--transition);
+  }
+  .top-bar button:hover { border-color: var(--warm-gold); color: var(--warm-cream); }
+ 
+  /* ===== COUPLE PAGE ===== */
+  #couple-page {
+    min-height: 100vh;
+    background: var(--warm-deep);
+  }
+ 
+  .couple-hero {
+    position: relative;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    overflow: hidden;
+  }
+ 
+  .couple-hero-bg {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center, #2d1200 0%, #080300 100%);
+    z-index: 0;
+  }
+ 
+  .slideshow {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+  }
+ 
+  .slide {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  .slide.active { opacity: 1; }
+  .slide img, .slide video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: brightness(0.35) saturate(0.7) sepia(0.2);
+  }
+ 
+  .slideshow-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, rgba(13,5,0,0.3) 0%, rgba(13,5,0,0.1) 40%, rgba(13,5,0,0.8) 100%);
+    z-index: 2;
+  }
+ 
+  .couple-hero-content {
+    position: relative;
+    z-index: 3;
+    padding: 2rem;
+  }
+ 
+  .couple-hero-years {
+    display: inline-block;
+    padding: 0.4rem 2rem;
+    border: 1px solid rgba(201,146,42,0.5);
+    color: var(--warm-gold);
+    font-size: 0.85rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    margin-bottom: 1.5rem;
+    animation: pulse-border 3s ease infinite;
+  }
+  @keyframes pulse-border {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(201,146,42,0); }
+    50% { box-shadow: 0 0 0 6px rgba(201,146,42,0.05); }
+  }
+ 
+  .couple-hero-title {
+    font-family: var(--font-display);
+    font-size: clamp(2.5rem, 8vw, 6rem);
+    font-weight: 400;
+    font-style: italic;
+    color: var(--warm-cream);
+    line-height: 1.05;
+    text-shadow: 0 2px 40px rgba(0,0,0,0.5);
+  }
+ 
+  .couple-hero-sub {
+    font-family: var(--font-devanagari);
+    font-size: clamp(0.9rem, 2.5vw, 1.2rem);
+    color: var(--warm-amber);
+    margin-top: 0.75rem;
+    letter-spacing: 0.05em;
+  }
+ 
+  .couple-hero-verse {
+    margin-top: 1.5rem;
+    color: var(--blush);
+    font-size: 1.1rem;
+    font-style: italic;
+    max-width: 500px;
+    margin-left: auto;
+    margin-right: auto;
+    line-height: 1.8;
+    opacity: 0.9;
+  }
+ 
+  .scroll-hint {
+    position: absolute;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 3;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--warm-amber);
+    font-size: 0.75rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    opacity: 0.7;
+    animation: bounce 2s ease infinite;
+  }
+  .scroll-hint::after {
+    content: '';
+    width: 1px;
+    height: 40px;
+    background: linear-gradient(to bottom, var(--warm-gold), transparent);
+    display: block;
+  }
+  @keyframes bounce {
+    0%, 100% { transform: translateX(-50%) translateY(0); }
+    50% { transform: translateX(-50%) translateY(-8px); }
+  }
+ 
+  /* ===== GALLERY SECTION ===== */
+  .section {
+    padding: 5rem 2rem;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+ 
+  .section-header {
+    text-align: center;
+    margin-bottom: 3rem;
+  }
+  .section-header .label {
+    color: var(--warm-gold);
+    font-size: 0.8rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    margin-bottom: 0.75rem;
+  }
+  .section-header h2 {
+    font-family: var(--font-display);
+    font-size: clamp(1.8rem, 5vw, 3rem);
+    font-weight: 400;
+    font-style: italic;
+    color: var(--warm-cream);
+  }
+  .section-divider {
+    width: 60px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--warm-gold), transparent);
+    margin: 1.5rem auto;
+  }
+ 
+  .gallery-masonry {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1rem;
+  }
+ 
+  .gallery-item {
+    position: relative;
+    overflow: hidden;
+    aspect-ratio: 3/4;
+    cursor: pointer;
+    background: rgba(45,18,0,0.5);
+    border: 1px solid rgba(201,146,42,0.1);
+  }
+  .gallery-item:nth-child(3n+2) { aspect-ratio: 4/3; }
+  .gallery-item:nth-child(5n+1) { aspect-ratio: 1/1; }
+ 
+  .gallery-item img, .gallery-item video {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    transition: transform 0.8s ease, filter 0.5s ease;
+    filter: saturate(0.7) brightness(0.85);
+  }
+  .gallery-item:hover img, .gallery-item:hover video {
+    transform: scale(1.06);
+    filter: saturate(1) brightness(1);
+  }
+ 
+  .gallery-placeholder {
+    width: 100%; height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    color: var(--warm-gold);
+    opacity: 0.4;
+    font-size: 0.85rem;
+    letter-spacing: 0.1em;
+  }
+  .gallery-placeholder svg { width: 32px; height: 32px; opacity: 0.5; }
+ 
+  /* ===== AUDIO PLAYER ===== */
+  .music-bar {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    z-index: 200;
+    background: rgba(13,5,0,0.95);
+    border-top: 1px solid rgba(201,146,42,0.2);
+    padding: 0.75rem 2rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    backdrop-filter: blur(20px);
+  }
+  .music-info { flex: 1; min-width: 0; }
+  .music-info .song-name {
+    color: var(--warm-cream);
+    font-size: 0.95rem;
+    font-style: italic;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .music-info .song-label {
+    color: var(--warm-gold);
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+  .music-controls { display: flex; gap: 0.75rem; align-items: center; }
+  .music-controls button {
+    background: none;
+    border: 1px solid rgba(201,146,42,0.3);
+    color: var(--warm-amber);
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: var(--transition);
+    font-size: 0.8rem;
+  }
+  .music-controls button:hover {
+    border-color: var(--warm-gold);
+    background: rgba(201,146,42,0.1);
+  }
+  .music-controls button.play-btn {
+    width: 44px; height: 44px;
+    background: rgba(201,146,42,0.15);
+    border-color: var(--warm-gold);
+    font-size: 1rem;
+  }
+  .volume-slider {
+    width: 80px;
+    -webkit-appearance: none;
+    height: 2px;
+    background: rgba(201,146,42,0.3);
+    outline: none;
+  }
+  .volume-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: var(--warm-gold);
+    cursor: pointer;
+  }
+ 
+  /* ===== WISHING BOX ===== */
+  .wishing-section {
+    padding: 4rem 2rem 8rem;
+    max-width: 800px;
+    margin: 0 auto;
+  }
+ 
+  .wish-form {
+    background: rgba(45,18,0,0.6);
+    border: 1px solid rgba(201,146,42,0.2);
+    padding: 2rem;
+    margin-bottom: 2.5rem;
+    position: relative;
+  }
+  .wish-form::before {
+    content: '';
+    position: absolute;
+    inset: 6px;
+    border: 1px solid rgba(201,146,42,0.08);
+    pointer-events: none;
+  }
+ 
+  .wish-form textarea {
+    width: 100%;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(201,146,42,0.2);
+    color: var(--warm-cream);
+    padding: 1rem;
+    font-family: var(--font-body);
+    font-size: 1.05rem;
+    font-style: italic;
+    resize: vertical;
+    min-height: 120px;
+    outline: none;
+    transition: var(--transition);
+    line-height: 1.7;
+  }
+  .wish-form textarea:focus { border-color: var(--warm-gold); }
+  .wish-form textarea::placeholder { color: var(--text-light); opacity: 0.6; }
+ 
+  .wish-submit {
+    margin-top: 1rem;
+    padding: 0.75rem 2rem;
+    background: transparent;
+    border: 1px solid var(--warm-gold);
+    color: var(--warm-amber);
+    font-family: var(--font-body);
+    font-size: 1rem;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    transition: var(--transition);
+    text-transform: uppercase;
+  }
+  .wish-submit:hover { background: rgba(201,146,42,0.1); color: var(--warm-cream); }
+ 
+  .wishes-list { display: flex; flex-direction: column; gap: 1.5rem; }
+ 
+  .wish-card {
+    background: rgba(45,18,0,0.4);
+    border: 1px solid rgba(201,146,42,0.12);
+    padding: 1.5rem 2rem;
+    position: relative;
+    animation: fade-up 0.5s ease forwards;
+  }
+  .wish-card::before {
+    content: '❝';
+    position: absolute;
+    top: 0.5rem; left: 1rem;
+    font-size: 2rem;
+    color: var(--warm-gold);
+    opacity: 0.2;
+    font-family: Georgia, serif;
+  }
+ 
+  .wish-author {
+    color: var(--warm-gold);
+    font-size: 0.85rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+  }
+  .wish-text {
+    color: var(--blush);
+    font-size: 1.05rem;
+    font-style: italic;
+    line-height: 1.7;
+  }
+  .wish-date {
+    color: var(--text-light);
+    font-size: 0.8rem;
+    margin-top: 0.75rem;
+    opacity: 0.6;
+  }
+ 
+  /* ===== ADMIN PANEL ===== */
+  #admin-panel {
+    background: var(--warm-deep);
+    padding: 5rem 2rem 2rem;
+  }
+ 
+  .admin-header {
+    text-align: center;
+    padding: 2rem;
+    border-bottom: 1px solid rgba(201,146,42,0.2);
+    margin-bottom: 2rem;
+  }
+  .admin-header h1 {
+    font-family: var(--font-display);
+    font-size: 2rem;
+    font-weight: 400;
+    font-style: italic;
+    color: var(--warm-cream);
+  }
+  .admin-header p { color: var(--warm-amber); font-size: 0.9rem; }
+ 
+  .admin-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+ 
+  .admin-card {
+    background: rgba(45,18,0,0.6);
+    border: 1px solid rgba(201,146,42,0.2);
+    padding: 1.5rem;
+  }
+  .admin-card h3 {
+    font-family: var(--font-display);
+    font-style: italic;
+    color: var(--warm-cream);
+    font-size: 1.2rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid rgba(201,146,42,0.15);
+  }
+ 
+  .admin-couple-select {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+  .admin-couple-select button {
+    flex: 1;
+    background: none;
+    border: 1px solid rgba(201,146,42,0.3);
+    color: var(--warm-amber);
+    padding: 0.5rem;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: var(--transition);
+  }
+  .admin-couple-select button.active {
+    background: rgba(201,146,42,0.15);
+    border-color: var(--warm-gold);
+    color: var(--warm-cream);
+  }
+ 
+  .upload-area {
+    border: 1px dashed rgba(201,146,42,0.3);
+    padding: 1.5rem;
+    text-align: center;
+    cursor: pointer;
+    transition: var(--transition);
+    position: relative;
+    margin-bottom: 1rem;
+  }
+  .upload-area:hover { border-color: var(--warm-gold); background: rgba(201,146,42,0.04); }
+  .upload-area input[type=file] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+  }
+  .upload-area p { color: var(--text-light); font-size: 0.9rem; }
+  .upload-area .upload-icon { color: var(--warm-gold); font-size: 1.5rem; margin-bottom: 0.5rem; }
+ 
+  .admin-upload-btn {
+    width: 100%;
+    padding: 0.75rem;
+    background: transparent;
+    border: 1px solid var(--warm-gold);
+    color: var(--warm-amber);
+    cursor: pointer;
+    font-family: var(--font-body);
+    font-size: 1rem;
+    transition: var(--transition);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+  .admin-upload-btn:hover { background: rgba(201,146,42,0.1); }
+ 
+  .media-thumbs {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.5rem;
+    margin-top: 1rem;
+  }
+  .media-thumb {
+    aspect-ratio: 1;
+    background: rgba(45,18,0,0.8);
+    border: 1px solid rgba(201,146,42,0.15);
+    overflow: hidden;
+    position: relative;
+  }
+  .media-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .media-thumb .thumb-del {
+    position: absolute;
+    top: 2px; right: 2px;
+    background: rgba(0,0,0,0.7);
+    border: none;
+    color: #e07070;
+    cursor: pointer;
+    width: 20px; height: 20px;
+    font-size: 10px;
+    display: none;
+  }
+  .media-thumb:hover .thumb-del { display: flex; align-items: center; justify-content: center; }
+ 
+  .song-list { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.75rem; }
+  .song-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    background: rgba(201,146,42,0.05);
+    border: 1px solid rgba(201,146,42,0.1);
+    font-size: 0.85rem;
+    color: var(--blush);
+  }
+  .song-item .play-song {
+    background: none;
+    border: none;
+    color: var(--warm-gold);
+    cursor: pointer;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+  }
+  .song-item .del-song {
+    background: none;
+    border: none;
+    color: #e07070;
+    cursor: pointer;
+    margin-left: auto;
+    font-size: 0.8rem;
+  }
+  .song-item .song-name-item { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+ 
+  .admin-wishes-list { display: flex; flex-direction: column; gap: 0.75rem; max-height: 300px; overflow-y: auto; }
+  .admin-wish-item {
+    display: flex;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    background: rgba(201,146,42,0.04);
+    border: 1px solid rgba(201,146,42,0.1);
+    font-size: 0.85rem;
+  }
+  .admin-wish-item .wish-del {
+    background: none;
+    border: none;
+    color: #e07070;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+ 
+  .notification {
+    position: fixed;
+    bottom: 5rem;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: rgba(45,18,0,0.95);
+    border: 1px solid var(--warm-gold);
+    color: var(--warm-amber);
+    padding: 0.75rem 2rem;
+    font-size: 0.9rem;
+    letter-spacing: 0.05em;
+    opacity: 0;
+    transition: all 0.4s ease;
+    pointer-events: none;
+    z-index: 1000;
+    white-space: nowrap;
+  }
+  .notification.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+ 
+  /* Lightbox */
+  .lightbox {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.95);
+    z-index: 500;
+    display: none;
+    align-items: center;
+    justify-content: center;
+  }
+  .lightbox.open { display: flex; }
+  .lightbox img, .lightbox video {
+    max-width: 90vw;
+    max-height: 90vh;
+    object-fit: contain;
+  }
+  .lightbox-close {
+    position: absolute;
+    top: 1.5rem; right: 1.5rem;
+    background: none;
+    border: 1px solid rgba(201,146,42,0.4);
+    color: var(--warm-amber);
+    width: 40px; height: 40px;
+    cursor: pointer;
+    font-size: 1.2rem;
+  }
+ 
+  /* ===== RESPONSIVE ===== */
+  @media (max-width: 600px) {
+    .auth-card { padding: 2rem 1.5rem; }
+    .couple-grid { grid-template-columns: 1fr; }
+    .section { padding: 3rem 1rem; }
+    .music-bar { padding: 0.5rem 1rem; gap: 0.5rem; }
+    .volume-slider { width: 50px; }
+    .admin-grid { grid-template-columns: 1fr; }
+    .gallery-masonry { grid-template-columns: repeat(2, 1fr); }
+    .media-thumbs { grid-template-columns: repeat(3, 1fr); }
+    .couple-hero-title { font-size: 2.5rem; }
+  }
+ 
+  /* Fade animations */
+  .fade-in { opacity: 0; transform: translateY(20px); transition: opacity 0.8s ease, transform 0.8s ease; }
+  .fade-in.visible { opacity: 1; transform: translateY(0); }
+ 
+  /* Loading */
+  .loading-overlay {
+    position: fixed;
+    inset: 0;
+    background: var(--warm-deep);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.5s ease;
+  }
+  .loading-overlay.hidden { opacity: 0; pointer-events: none; }
+  .loading-spinner {
+    width: 40px; height: 40px;
+    border: 1px solid rgba(201,146,42,0.2);
+    border-top-color: var(--warm-gold);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+ 
+  /* Admin nav tab */
+  .admin-nav-btn {
+    position: fixed;
+    bottom: 4.5rem;
+    right: 1rem;
+    background: rgba(45,18,0,0.95);
+    border: 1px solid var(--warm-gold);
+    color: var(--warm-amber);
+    padding: 0.5rem 1rem;
+    font-size: 0.8rem;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    z-index: 150;
+    display: none;
+    backdrop-filter: blur(10px);
+  }
+ 
+  .back-btn {
+    background: none;
+    border: 1px solid rgba(201,146,42,0.3);
+    color: var(--warm-amber);
+    padding: 0.4rem 1rem;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-family: var(--font-body);
+    transition: var(--transition);
+  }
+  .back-btn:hover { border-color: var(--warm-gold); color: var(--warm-cream); }
+ 
+  /* Couple page nav */
+  .page-nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 2rem;
+    background: linear-gradient(to bottom, rgba(13,5,0,0.9) 0%, transparent 100%);
+  }
+  .page-nav-links { display: flex; gap: 1.5rem; }
+  .page-nav-links a {
+    color: rgba(232,184,75,0.7);
+    text-decoration: none;
+    font-size: 0.85rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: var(--transition);
+  }
+  .page-nav-links a:hover { color: var(--warm-amber); }
+ 
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
+</style>
+</head>
+<body>
+ 
+<div class="loading-overlay" id="loading-overlay">
+  <div class="loading-spinner"></div>
+</div>
+ 
+<div class="particle-bg" id="particle-bg"></div>
+<div id="notification" class="notification"></div>
+ 
+<!-- ===== INTRO SCREEN ===== -->
+<section class="screen active" id="intro">
+  <div class="intro-content">
+    <div class="lang-toggle" style="opacity:0;animation:fade-up 1.5s ease 0.2s forwards;">
+      <button class="active" onclick="setLang('en')" id="btn-en">English</button>
+      <button onclick="setLang('mr')" id="btn-mr">मराठी</button>
+    </div>
+    <div class="intro-ornament" id="intro-ornament">— ❧ —</div>
+    <div class="intro-divider"></div>
+    <h1 class="intro-title" id="intro-title">A Celebration<br><em>of Enduring Love</em></h1>
+    <p class="intro-subtitle" id="intro-subtitle">प्रेमाचा अनंत उत्सव</p>
+    <div class="intro-divider"></div>
+    <p class="intro-verse" id="intro-verse">Some love stories don't have endings —<br>they simply find new ways to begin again.</p>
+    <div class="intro-enter-btn">
+      <button class="btn-primary" onclick="goToAuth()" id="enter-btn">Enter &rarr;</button>
+    </div>
+  </div>
+</section>
+ 
+<!-- ===== AUTH SCREEN ===== -->
+<section class="screen" id="auth">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div class="ornament">— ❧ —</div>
+      <h2 id="auth-title">Welcome</h2>
+      <p style="color:var(--text-light);font-size:0.85rem;margin-top:0.25rem" id="auth-sub">Sign in to share in the celebration</p>
+    </div>
+    <div class="tab-switcher">
+      <button class="active" id="tab-login" onclick="switchTab('login')">Sign In</button>
+      <button id="tab-register" onclick="switchTab('register')">Create Account</button>
+    </div>
+    <div id="login-form">
+      <div class="form-group">
+        <label id="label-email">Email</label>
+        <input type="email" id="login-email" placeholder="your@email.com">
+      </div>
+      <div class="form-group">
+        <label id="label-pass">Password</label>
+        <input type="password" id="login-pass" placeholder="••••••••">
+      </div>
+      <button class="auth-btn" onclick="doLogin()" id="login-btn">Sign In</button>
+    </div>
+    <div id="register-form" style="display:none">
+      <div class="form-group">
+        <label id="label-name">Your Name</label>
+        <input type="text" id="reg-name" placeholder="Your full name">
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="reg-email" placeholder="your@email.com">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="reg-pass" placeholder="Choose a password">
+      </div>
+      <button class="auth-btn" onclick="doRegister()" id="register-btn">Create Account</button>
+    </div>
+    <div id="auth-msg" class="auth-msg"></div>
+    <div style="text-align:center;margin-top:1.5rem">
+      <button onclick="goToIntro()" style="background:none;border:none;color:var(--text-light);cursor:pointer;font-size:0.85rem;text-decoration:underline">← Back</button>
+    </div>
+  </div>
+</section>
+ 
+<!-- ===== COUPLE SELECT ===== -->
+<section class="screen" id="couple-select" style="padding-top:80px">
+  <div class="top-bar">
+    <span class="logo">❧ Celebrations of Love</span>
+    <div class="top-bar-right">
+      <span id="user-greeting" style="color:var(--text-light);font-size:0.85rem;font-style:italic"></span>
+      <button onclick="showScreen('admin-panel')" id="admin-btn" style="display:none">Admin Panel</button>
+      <button onclick="doLogout()">Sign Out</button>
+    </div>
+  </div>
+  <div class="select-header fade-in">
+    <p class="greeting" id="select-greeting">With love, for you</p>
+    <h1 id="select-title">Choose a Celebration</h1>
+    <div style="width:60px;height:1px;background:linear-gradient(90deg,transparent,var(--warm-gold),transparent);margin:1rem auto"></div>
+  </div>
+  <div class="couple-grid fade-in">
+    <div class="couple-card" onclick="openCouplePage(1)">
+      <span class="couple-icon">💍</span>
+      <div class="couple-years" id="c1-years">25 Years Together</div>
+      <h2 class="couple-name" id="c1-name">Baba & Aai</h2>
+      <p class="couple-desc" id="c1-desc">A quarter century of unwavering love, sacrifice, and the gentle art of growing together through every season of life.</p>
+    </div>
+    <div class="couple-card" onclick="openCouplePage(2)">
+      <span class="couple-icon">🌸</span>
+      <div class="couple-years" id="c2-years">10 Years Together</div>
+      <h2 class="couple-name" id="c2-name">Mama & Mami</h2>
+      <p class="couple-desc" id="c2-desc">Ten beautiful years of shared dreams, laughter, and a bond that blooms more brilliantly with every passing year.</p>
+    </div>
+  </div>
+</section>
+ 
+<!-- ===== COUPLE PAGE ===== -->
+<section class="screen" id="couple-page">
+  <nav class="page-nav">
+    <button class="back-btn" onclick="showScreen('couple-select')">← Back</button>
+    <div class="page-nav-links">
+      <a onclick="scrollToSection('gallery-section')">Memories</a>
+      <a onclick="scrollToSection('wishes-section')">Wishes</a>
+    </div>
+    <button class="back-btn" onclick="doLogout()">Sign Out</button>
+  </nav>
+ 
+  <div class="couple-hero">
+    <div class="couple-hero-bg"></div>
+    <div class="slideshow" id="couple-slideshow"></div>
+    <div class="slideshow-overlay"></div>
+    <div class="couple-hero-content">
+      <div class="couple-hero-years" id="hero-years">25 Years</div>
+      <h1 class="couple-hero-title" id="hero-title">Baba & Aai</h1>
+      <p class="couple-hero-sub" id="hero-sub">सोबत असण्याचे पंचवीस वर्षे</p>
+      <p class="couple-hero-verse" id="hero-verse">"Two souls, one journey — written across<br>every season they have shared together."</p>
+    </div>
+    <div class="scroll-hint">Scroll</div>
+  </div>
+ 
+  <div class="section fade-in" id="gallery-section">
+    <div class="section-header">
+      <p class="label" id="gallery-label">Moments in Time</p>
+      <h2 id="gallery-title">A Lifetime of Memories</h2>
+      <div class="section-divider"></div>
+    </div>
+    <div class="gallery-masonry" id="gallery-grid"></div>
+  </div>
+ 
+  <div class="wishing-section fade-in" id="wishes-section">
+    <div class="section-header">
+      <p class="label" id="wishes-label">From the Heart</p>
+      <h2 id="wishes-title">Leave a Wish</h2>
+      <div class="section-divider"></div>
+      <p style="color:var(--blush);font-style:italic;font-size:1rem;margin-top:0.5rem" id="wishes-desc">Your words become part of their story.</p>
+    </div>
+    <div class="wish-form">
+      <textarea id="wish-input" placeholder="Write your wish, memory, or message here…"></textarea>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.75rem">
+        <span style="color:var(--text-light);font-size:0.85rem;font-style:italic" id="wishing-as"></span>
+        <button class="wish-submit" onclick="submitWish()" id="wish-btn">Send Wish ❤</button>
+      </div>
+    </div>
+    <div class="wishes-list" id="wishes-list"></div>
+  </div>
+ 
+  <!-- Audio -->
+  <div class="music-bar" id="music-bar" style="display:none">
+    <div style="color:var(--warm-gold);font-size:1.2rem">♪</div>
+    <div class="music-info">
+      <div class="music-info .song-label">Now Playing</div>
+      <div class="song-name" id="now-playing">—</div>
+    </div>
+    <div class="music-controls">
+      <button onclick="prevSong()">&#x23EE;</button>
+      <button class="play-btn" id="play-pause-btn" onclick="togglePlay()">&#x25B6;</button>
+      <button onclick="nextSong()">&#x23ED;</button>
+    </div>
+    <input type="range" class="volume-slider" min="0" max="1" step="0.05" value="0.6"
+           oninput="setVolume(this.value)">
+  </div>
+</section>
+ 
+<!-- ===== ADMIN PANEL ===== -->
+<section class="screen" id="admin-panel">
+  <div class="top-bar">
+    <span class="logo">❧ Admin Panel</span>
+    <div class="top-bar-right">
+      <button onclick="showScreen('couple-select')" class="back-btn">← Dashboard</button>
+      <button onclick="doLogout()">Sign Out</button>
+    </div>
+  </div>
+  <div class="admin-header" style="margin-top:60px">
+    <h1>Administrative Controls</h1>
+    <p>Manage media, music, and content for both celebrations</p>
+  </div>
+  <div class="admin-grid">
+ 
+    <!-- Media Upload -->
+    <div class="admin-card">
+      <h3>📸 Upload Photos & Videos</h3>
+      <p style="color:var(--text-light);font-size:0.85rem;margin-bottom:1rem">Upload images or videos for each couple's gallery</p>
+      <div class="admin-couple-select" id="media-couple-select">
+        <button class="active" onclick="setAdminCouple('media',1,this)">Baba & Aai (25yr)</button>
+        <button onclick="setAdminCouple('media',2,this)">Mama & Mami (10yr)</button>
+      </div>
+      <div class="upload-area">
+        <div class="upload-icon">⬆</div>
+        <p>Click or drag photos/videos here</p>
+        <p style="font-size:0.75rem;margin-top:0.25rem;opacity:0.5">JPG, PNG, GIF, MP4, MOV</p>
+        <input type="file" id="media-upload" accept="image/*,video/*" multiple onchange="handleMediaUpload(event)">
+      </div>
+      <button class="admin-upload-btn" onclick="document.getElementById('media-upload').click()">Choose Files</button>
+      <div class="media-thumbs" id="media-thumbs-1" style="margin-top:1rem"></div>
+      <div class="media-thumbs" id="media-thumbs-2" style="display:none;margin-top:1rem"></div>
+    </div>
+ 
+    <!-- Music Upload -->
+    <div class="admin-card">
+      <h3>🎵 Manage Music</h3>
+      <p style="color:var(--text-light);font-size:0.85rem;margin-bottom:1rem">Upload Marathi songs for each couple's page</p>
+      <div class="admin-couple-select" id="music-couple-select">
+        <button class="active" onclick="setAdminCouple('music',1,this)">Baba & Aai (25yr)</button>
+        <button onclick="setAdminCouple('music',2,this)">Mama & Mami (10yr)</button>
+      </div>
+      <div class="upload-area">
+        <div class="upload-icon">♪</div>
+        <p>Upload audio files here</p>
+        <p style="font-size:0.75rem;margin-top:0.25rem;opacity:0.5">MP3, WAV, OGG, M4A</p>
+        <input type="file" id="music-upload" accept="audio/*" multiple onchange="handleMusicUpload(event)">
+      </div>
+      <button class="admin-upload-btn" onclick="document.getElementById('music-upload').click()">Choose Audio Files</button>
+      <div class="song-list" id="song-list-1"></div>
+      <div class="song-list" id="song-list-2" style="display:none"></div>
+    </div>
+ 
+    <!-- Wishes Moderation -->
+    <div class="admin-card">
+      <h3>💌 Moderate Wishes</h3>
+      <div class="admin-couple-select">
+        <button class="active" onclick="loadAdminWishes(1,this)">Baba & Aai</button>
+        <button onclick="loadAdminWishes(2,this)">Mama & Mami</button>
+      </div>
+      <div class="admin-wishes-list" id="admin-wishes-list">
+        <p style="color:var(--text-light);font-size:0.85rem;font-style:italic">Loading wishes…</p>
+      </div>
+    </div>
+ 
+    <!-- Supabase Setup Guide -->
+    <div class="admin-card" style="grid-column:1/-1">
+      <h3>⚙️ Backend Setup — Important</h3>
+      <p style="color:var(--blush);font-size:0.95rem;line-height:1.7;font-style:italic;margin-bottom:0.75rem">
+        To enable permanent storage of wishes, photos, and music, configure Supabase below.
+        Without this, data is saved locally in your browser only (for preview/demo).
+      </p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
+        <div class="form-group">
+          <label>Supabase URL</label>
+          <input type="text" id="sb-url" placeholder="https://xxxx.supabase.co" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(201,146,42,0.2);color:var(--warm-cream);padding:0.6rem;outline:none;">
+        </div>
+        <div class="form-group">
+          <label>Supabase Anon Key</label>
+          <input type="text" id="sb-key" placeholder="eyJhbGci..." style="width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(201,146,42,0.2);color:var(--warm-cream);padding:0.6rem;outline:none;">
+        </div>
+      </div>
+      <button class="admin-upload-btn" style="width:auto;padding:0.6rem 1.5rem;margin-top:0.5rem" onclick="saveSupabaseConfig()">Save & Connect</button>
+      <p id="sb-status" style="color:var(--warm-gold);font-size:0.85rem;margin-top:0.5rem"></p>
+    </div>
+ 
+  </div>
+</section>
+ 
+<!-- Lightbox -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <button class="lightbox-close" onclick="closeLightbox()">✕</button>
+  <img id="lightbox-img" src="" alt="" style="display:none">
+  <video id="lightbox-vid" controls style="display:none"></video>
+</div>
+ 
+<audio id="bg-audio" loop></audio>
+ 
+<script>
+// ===== CONFIG & STATE =====
+const SUPABASE_URL = localStorage.getItem('sb_url') || '';
+const SUPABASE_KEY = localStorage.getItem('sb_key') || '';
+ 
+let supabase = null;
+let currentUser = null;
+let currentCouple = 1;
+let currentLang = 'en';
+let songs = { 1: [], 2: [] };
+let media = { 1: [], 2: [] };
+let wishes = { 1: [], 2: [] };
+let currentSongIdx = { 1: 0, 2: 0 };
+let isPlaying = false;
+let slideshowTimer = null;
+let currentSlide = 0;
+let adminMediaCouple = 1;
+let adminMusicCouple = 1;
+ 
+// Demo admin credentials (also stored in localStorage for persistence)
+const ADMIN_USER = { email: 'admin@anniversary.love', password: 'vidhi2816', name: 'Admin', isAdmin: true };
+ 
+// ===== INIT =====
+window.addEventListener('load', () => {
+  initParticles();
+  initSupabase();
+  loadLocalData();
+  // Pre-populate admin if not exists
+  let users = JSON.parse(localStorage.getItem('users') || '[]');
+  if (!users.find(u => u.email === ADMIN_USER.email)) {
+    users.push(ADMIN_USER);
+    localStorage.setItem('users', JSON.stringify(users));
+  }
+  setTimeout(() => {
+    document.getElementById('loading-overlay').classList.add('hidden');
+  }, 800);
+  initIntersectionObserver();
+});
+ 
+function initSupabase() {
+  const url = localStorage.getItem('sb_url');
+  const key = localStorage.getItem('sb_key');
+  if (url && key && window.supabase) {
+    try {
+      supabase = window.supabase.createClient(url, key);
+    } catch(e) { supabase = null; }
+  }
+}
+ 
+function loadLocalData() {
+  const storedMedia = localStorage.getItem('couple_media');
+  const storedSongs = localStorage.getItem('couple_songs');
+  const storedWishes = localStorage.getItem('couple_wishes');
+  if (storedMedia) media = JSON.parse(storedMedia);
+  if (storedSongs) songs = JSON.parse(storedSongs);
+  if (storedWishes) wishes = JSON.parse(storedWishes);
+}
+ 
+function saveLocalData() {
+  localStorage.setItem('couple_media', JSON.stringify(media));
+  localStorage.setItem('couple_songs', JSON.stringify(songs));
+  localStorage.setItem('couple_wishes', JSON.stringify(wishes));
+}
+ 
+// ===== PARTICLES =====
+function initParticles() {
+  const bg = document.getElementById('particle-bg');
+  for (let i = 0; i < 20; i++) {
+    const p = document.createElement('div');
+    p.className = 'petal';
+    p.style.left = Math.random() * 100 + '%';
+    p.style.animationDuration = (8 + Math.random() * 15) + 's';
+    p.style.animationDelay = (Math.random() * 15) + 's';
+    p.style.opacity = Math.random() * 0.3;
+    p.style.transform = `rotate(${Math.random() * 90}deg)`;
+    bg.appendChild(p);
+  }
+}
+ 
+// ===== LANGUAGE =====
+const STRINGS = {
+  en: {
+    intro_title: 'A Celebration<br><em>of Enduring Love</em>',
+    intro_sub: 'प्रेमाचा अनंत उत्सव',
+    intro_verse: "Some love stories don't have endings —<br>they simply find new ways to begin again.",
+    enter_btn: 'Enter &rarr;',
+    auth_title: 'Welcome',
+    auth_sub: 'Sign in to share in the celebration',
+    tab_login: 'Sign In',
+    tab_register: 'Create Account',
+    label_email: 'Email',
+    label_pass: 'Password',
+    label_name: 'Your Name',
+    login_btn: 'Sign In',
+    register_btn: 'Create Account',
+    select_greeting: 'With love, for you',
+    select_title: 'Choose a Celebration',
+    c1_years: '25 Years Together',
+    c1_name: 'Baba & Aai',
+    c1_desc: 'A quarter century of unwavering love, sacrifice, and the gentle art of growing together through every season of life.',
+    c2_years: '10 Years Together',
+    c2_name: 'Mama & Mami',
+    c2_desc: 'Ten beautiful years of shared dreams, laughter, and a bond that blooms more brilliantly with every passing year.',
+    gallery_label: 'Moments in Time',
+    gallery_title: 'A Lifetime of Memories',
+    wishes_label: 'From the Heart',
+    wishes_title: 'Leave a Wish',
+    wishes_desc: 'Your words become part of their story.',
+    wish_placeholder: 'Write your wish, memory, or message here…',
+    wish_btn: 'Send Wish ❤',
+  },
+  mr: {
+    intro_title: 'प्रेमाचा<br><em>अनंत उत्सव</em>',
+    intro_sub: 'A Celebration of Enduring Love',
+    intro_verse: "काही प्रेमकथांना अंत नसतो —<br>त्या नव्याने सुरू होतच राहतात.",
+    enter_btn: 'आत जा &rarr;',
+    auth_title: 'स्वागत आहे',
+    auth_sub: 'उत्सवात सहभागी व्हण्यासाठी साइन इन करा',
+    tab_login: 'साइन इन',
+    tab_register: 'खाते तयार करा',
+    label_email: 'ईमेल',
+    label_pass: 'पासवर्ड',
+    label_name: 'आपले नाव',
+    login_btn: 'साइन इन',
+    register_btn: 'खाते तयार करा',
+    select_greeting: 'प्रेमाने, तुमच्यासाठी',
+    select_title: 'उत्सव निवडा',
+    c1_years: '२५ वर्षे एकत्र',
+    c1_name: 'बाबा & आई',
+    c1_desc: 'अटूट प्रेम, त्याग, आणि जीवनाच्या प्रत्येक ऋतूत एकत्र वाढण्याच्या पंचवीस वर्षांची गोड कथा.',
+    c2_years: '१० वर्षे एकत्र',
+    c2_name: 'मामा & मामी',
+    c2_desc: 'सामायिक स्वप्ने, हास्य आणि प्रत्येक वर्षागणिक अधिक फुलणाऱ्या बंधनाची दहा सुंदर वर्षे.',
+    gallery_label: 'आठवणींचे क्षण',
+    gallery_title: 'आयुष्याच्या आठवणी',
+    wishes_label: 'मनापासून',
+    wishes_title: 'शुभेच्छा द्या',
+    wishes_desc: 'तुमचे शब्द त्यांच्या कथेचा भाग बनतात.',
+    wish_placeholder: 'आपल्या शुभेच्छा, आठवणी किंवा संदेश इथे लिहा…',
+    wish_btn: 'शुभेच्छा पाठवा ❤',
+  }
+};
+ 
+function setLang(lang) {
+  currentLang = lang;
+  document.getElementById('btn-en').classList.toggle('active', lang === 'en');
+  document.getElementById('btn-mr').classList.toggle('active', lang === 'mr');
+  applyStrings();
+}
+ 
+function applyStrings() {
+  const s = STRINGS[currentLang];
+  setText('intro-title', s.intro_title, true);
+  setText('intro-subtitle', s.intro_sub);
+  setText('intro-verse', s.intro_verse, true);
+  setText('enter-btn', s.enter_btn, true);
+  setText('auth-title', s.auth_title);
+  setText('auth-sub', s.auth_sub);
+  setText('tab-login', s.tab_login);
+  setText('tab-register', s.tab_register);
+  setText('label-email', s.label_email);
+  setText('label-pass', s.label_pass);
+  setText('label-name', s.label_name);
+  setText('login-btn', s.login_btn);
+  setText('register-btn', s.register_btn);
+  setText('select-greeting', s.select_greeting);
+  setText('select-title', s.select_title);
+  setText('c1-years', s.c1_years);
+  setText('c1-name', s.c1_name);
+  setText('c1-desc', s.c1_desc);
+  setText('c2-years', s.c2_years);
+  setText('c2-name', s.c2_name);
+  setText('c2-desc', s.c2_desc);
+  setText('gallery-label', s.gallery_label);
+  setText('gallery-title', s.gallery_title);
+  setText('wishes-label', s.wishes_label);
+  setText('wishes-title', s.wishes_title);
+  setText('wishes-desc', s.wishes_desc);
+  const wi = document.getElementById('wish-input');
+  if (wi) wi.placeholder = s.wish_placeholder;
+  setText('wish-btn', s.wish_btn, true);
+}
+ 
+function setText(id, val, html = false) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (html) el.innerHTML = val; else el.textContent = val;
+}
+ 
+// ===== NAVIGATION =====
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0, 0);
+  if (id !== 'couple-page') {
+    stopMusic();
+    clearSlideshow();
+  }
+  if (id === 'admin-panel') {
+    loadAdminWishes(1, null);
+    renderAdminThumbs();
+    renderSongLists();
+    const urlEl = document.getElementById('sb-url');
+    const keyEl = document.getElementById('sb-key');
+    if (urlEl) urlEl.value = localStorage.getItem('sb_url') || '';
+    if (keyEl) keyEl.value = localStorage.getItem('sb_key') || '';
+  }
+  if (id === 'couple-select') {
+    const s = STRINGS[currentLang];
+    setText('c1-name', s.c1_name);
+    setText('c2-name', s.c2_name);
+  }
+}
+ 
+function goToIntro() { showScreen('intro'); }
+ 
+function goToAuth() {
+  showScreen('auth');
+  applyStrings();
+}
+ 
+function scrollToSection(id) {
+  document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+}
+ 
+// ===== AUTH =====
+function switchTab(tab) {
+  const isLogin = tab === 'login';
+  document.getElementById('tab-login').classList.toggle('active', isLogin);
+  document.getElementById('tab-register').classList.toggle('active', !isLogin);
+  document.getElementById('login-form').style.display = isLogin ? 'block' : 'none';
+  document.getElementById('register-form').style.display = isLogin ? 'none' : 'block';
+  document.getElementById('auth-msg').textContent = '';
+}
+ 
+function setAuthMsg(msg, type) {
+  const el = document.getElementById('auth-msg');
+  el.textContent = msg;
+  el.className = 'auth-msg ' + (type || '');
+}
+ 
+function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pass = document.getElementById('login-pass').value;
+  if (!email || !pass) { setAuthMsg('Please fill in all fields', 'error'); return; }
+  const users = JSON.parse(localStorage.getItem('users') || '[]');
+  const user = users.find(u => u.email === email && u.password === pass);
+  if (!user) { setAuthMsg('Invalid email or password', 'error'); return; }
+  currentUser = user;
+  localStorage.setItem('current_user', JSON.stringify(user));
+  afterLogin();
+}
+ 
+function doRegister() {
+  const name = document.getElementById('reg-name').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const pass = document.getElementById('reg-pass').value;
+  if (!name || !email || !pass) { setAuthMsg('Please fill in all fields', 'error'); return; }
+  if (pass.length < 6) { setAuthMsg('Password must be at least 6 characters', 'error'); return; }
+  let users = JSON.parse(localStorage.getItem('users') || '[]');
+  if (users.find(u => u.email === email)) { setAuthMsg('Email already registered', 'error'); return; }
+  const user = { email, password: pass, name, isAdmin: false };
+  users.push(user);
+  localStorage.setItem('users', JSON.stringify(users));
+  currentUser = user;
+  localStorage.setItem('current_user', JSON.stringify(user));
+  setAuthMsg('Account created! Welcome, ' + name, 'success');
+  setTimeout(afterLogin, 800);
+}
+ 
+function afterLogin() {
+  // Check for saved session
+  const s = STRINGS[currentLang];
+  const greetEl = document.getElementById('user-greeting');
+  if (greetEl) greetEl.textContent = 'Welcome, ' + currentUser.name;
+  const adminBtn = document.getElementById('admin-btn');
+  if (adminBtn) adminBtn.style.display = currentUser.isAdmin ? 'inline-block' : 'none';
+  showScreen('couple-select');
+  setTimeout(() => {
+    document.querySelectorAll('.fade-in').forEach(el => el.classList.add('visible'));
+  }, 100);
+}
+ 
+function doLogout() {
+  currentUser = null;
+  localStorage.removeItem('current_user');
+  stopMusic();
+  clearSlideshow();
+  showScreen('intro');
+}
+ 
+// Check for saved session on load
+window.addEventListener('DOMContentLoaded', () => {
+  const saved = localStorage.getItem('current_user');
+  if (saved) {
+    currentUser = JSON.parse(saved);
+  }
+});
+ 
+// ===== COUPLE PAGE =====
+const COUPLE_DATA = {
+  1: {
+    name_en: 'Baba & Aai',
+    name_mr: 'बाबा & आई',
+    years_en: '25 Years of Love',
+    years_mr: 'प्रेमाची पंचवीस वर्षे',
+    sub_en: 'Together Since 1999',
+    sub_mr: '१९९९ पासून एकत्र',
+    verse_en: '"In the quiet moments between words,<br>in every glance across a crowded room —<br>that is where their love lives."',
+    verse_mr: '"शब्दांमधील त्या शांत क्षणांत,<br>प्रत्येक नजरेत लपलेला प्रेमाचा अर्थ —<br>तिथेच त्यांचे प्रेम वास करते."',
+  },
+  2: {
+    name_en: 'Mama & Mami',
+    name_mr: 'मामा & मामी',
+    years_en: '10 Years of Love',
+    years_mr: 'प्रेमाची दहा वर्षे',
+    sub_en: 'Together Since 2014',
+    sub_mr: '२०१४ पासून एकत्र',
+    verse_en: '"Every year with you is a new chapter,<br>every day a fresh reminder<br>of how beautiful this journey is."',
+    verse_mr: '"तुझ्यासोबतचे प्रत्येक वर्ष एक नवा अध्याय,<br>प्रत्येक दिवस हा सुंदर प्रवास<br>आणखी मौल्यवान करतो."',
+  }
+};
+ 
+function openCouplePage(id) {
+  currentCouple = id;
+  const d = COUPLE_DATA[id];
+  const lang = currentLang;
+  setText('hero-title', lang === 'mr' ? d.name_mr : d.name_en);
+  setText('hero-years', lang === 'mr' ? d.years_mr : d.years_en);
+  setText('hero-sub', lang === 'mr' ? d.sub_mr : d.sub_en);
+  document.getElementById('hero-verse').innerHTML = lang === 'mr' ? d.verse_mr : d.verse_en;
+  showScreen('couple-page');
+  buildSlideshow(id);
+  buildGallery(id);
+  loadWishes(id);
+  startMusic(id);
+  const s = STRINGS[currentLang];
+  setText('wishing-as', 'Wishing as ' + (currentUser?.name || 'Guest'));
+  setTimeout(() => {
+    document.querySelectorAll('#couple-page .fade-in').forEach(el => el.classList.add('visible'));
+  }, 300);
+}
+ 
+// ===== SLIDESHOW =====
+function buildSlideshow(coupleId) {
+  const container = document.getElementById('couple-slideshow');
+  container.innerHTML = '';
+  const m = media[coupleId] || [];
+  if (m.length === 0) {
+    // Placeholder gradient slides
+    const colors = [
+      'radial-gradient(ellipse at 30% 40%, #3d1a08 0%, #0d0500 100%)',
+      'radial-gradient(ellipse at 70% 30%, #2a1005 0%, #080300 100%)',
+      'radial-gradient(ellipse at 50% 70%, #1f0e04 0%, #0a0200 100%)',
+    ];
+    colors.forEach((c, i) => {
+      const slide = document.createElement('div');
+      slide.className = 'slide' + (i === 0 ? ' active' : '');
+      slide.style.background = c;
+      container.appendChild(slide);
+    });
+  } else {
+    m.forEach((item, i) => {
+      const slide = document.createElement('div');
+      slide.className = 'slide' + (i === 0 ? ' active' : '');
+      if (item.type === 'video') {
+        const v = document.createElement('video');
+        v.src = item.url;
+        v.muted = true;
+        v.loop = true;
+        v.autoplay = true;
+        v.playsInline = true;
+        slide.appendChild(v);
+      } else {
+        const img = document.createElement('img');
+        img.src = item.url;
+        img.alt = '';
+        slide.appendChild(img);
+      }
+      container.appendChild(slide);
+    });
+  }
+  startSlideshow(container);
+}
+ 
+function startSlideshow(container) {
+  clearInterval(slideshowTimer);
+  currentSlide = 0;
+  slideshowTimer = setInterval(() => {
+    const slides = container.querySelectorAll('.slide');
+    if (slides.length < 2) return;
+    slides[currentSlide].classList.remove('active');
+    currentSlide = (currentSlide + 1) % slides.length;
+    slides[currentSlide].classList.add('active');
+  }, 5000);
+}
+ 
+function clearSlideshow() {
+  clearInterval(slideshowTimer);
+  document.getElementById('couple-slideshow').innerHTML = '';
+}
+ 
+// ===== GALLERY =====
+function buildGallery(coupleId) {
+  const grid = document.getElementById('gallery-grid');
+  grid.innerHTML = '';
+  const m = media[coupleId] || [];
+  if (m.length === 0) {
+    // Placeholder cards
+    for (let i = 0; i < 6; i++) {
+      const item = document.createElement('div');
+      item.className = 'gallery-item';
+      item.innerHTML = `<div class="gallery-placeholder"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>Upload photos to see them here</div>`;
+      grid.appendChild(item);
+    }
+    return;
+  }
+  m.forEach((item, idx) => {
+    const el = document.createElement('div');
+    el.className = 'gallery-item';
+    el.onclick = () => openLightbox(item);
+    if (item.type === 'video') {
+      const v = document.createElement('video');
+      v.src = item.url;
+      v.muted = true;
+      v.loop = true;
+      v.playsInline = true;
+      el.appendChild(v);
+    } else {
+      const img = document.createElement('img');
+      img.src = item.url;
+      img.alt = 'Memory ' + (idx + 1);
+      el.appendChild(img);
+    }
+    grid.appendChild(el);
+  });
+}
+ 
+// ===== LIGHTBOX =====
+function openLightbox(item) {
+  const lb = document.getElementById('lightbox');
+  const img = document.getElementById('lightbox-img');
+  const vid = document.getElementById('lightbox-vid');
+  if (item.type === 'video') {
+    img.style.display = 'none';
+    vid.style.display = 'block';
+    vid.src = item.url;
+  } else {
+    vid.style.display = 'none';
+    img.style.display = 'block';
+    img.src = item.url;
+  }
+  lb.classList.add('open');
+}
+ 
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('open');
+  document.getElementById('lightbox-vid').pause?.();
+}
+ 
+// ===== MUSIC =====
+function startMusic(coupleId) {
+  const songList = songs[coupleId];
+  const bar = document.getElementById('music-bar');
+  if (!songList || songList.length === 0) { bar.style.display = 'none'; return; }
+  bar.style.display = 'flex';
+  currentSongIdx[coupleId] = 0;
+  playSong(coupleId, 0);
+}
+ 
+function playSong(coupleId, idx) {
+  const audio = document.getElementById('bg-audio');
+  const songList = songs[coupleId];
+  if (!songList || songList.length === 0) return;
+  const song = songList[idx % songList.length];
+  audio.src = song.url;
+  audio.volume = 0.6;
+  audio.play().then(() => {
+    isPlaying = true;
+    document.getElementById('play-pause-btn').innerHTML = '&#x23F8;';
+    document.getElementById('now-playing').textContent = song.name;
+  }).catch(() => {});
+  audio.onended = () => nextSong();
+}
+ 
+function togglePlay() {
+  const audio = document.getElementById('bg-audio');
+  if (isPlaying) {
+    audio.pause();
+    isPlaying = false;
+    document.getElementById('play-pause-btn').innerHTML = '&#x25B6;';
+  } else {
+    audio.play();
+    isPlaying = true;
+    document.getElementById('play-pause-btn').innerHTML = '&#x23F8;';
+  }
+}
+ 
+function nextSong() {
+  currentSongIdx[currentCouple] = (currentSongIdx[currentCouple] + 1) % (songs[currentCouple]?.length || 1);
+  playSong(currentCouple, currentSongIdx[currentCouple]);
+}
+ 
+function prevSong() {
+  currentSongIdx[currentCouple] = ((currentSongIdx[currentCouple] - 1) + (songs[currentCouple]?.length || 1)) % (songs[currentCouple]?.length || 1);
+  playSong(currentCouple, currentSongIdx[currentCouple]);
+}
+ 
+function setVolume(v) { document.getElementById('bg-audio').volume = parseFloat(v); }
+ 
+function stopMusic() {
+  const audio = document.getElementById('bg-audio');
+  audio.pause();
+  audio.src = '';
+  isPlaying = false;
+  document.getElementById('music-bar').style.display = 'none';
+}
+ 
+// ===== WISHES =====
+async function loadWishes(coupleId) {
+  const list = document.getElementById('wishes-list');
+  list.innerHTML = '<p style="color:var(--text-light);font-style:italic;text-align:center">Loading wishes…</p>';
+  let loaded = [];
+  if (supabase) {
+    try {
+      const { data } = await supabase.from('wishes').select('*').eq('couple_id', coupleId).order('created_at', { ascending: false });
+      if (data) {
+        wishes[coupleId] = data;
+        saveLocalData();
+        loaded = data;
+      }
+    } catch(e) {}
+  } else {
+    loaded = wishes[coupleId] || [];
+  }
+  renderWishes(loaded, list);
+}
+ 
+function renderWishes(list, container) {
+  if (!list || list.length === 0) {
+    container.innerHTML = '<p style="color:var(--text-light);font-style:italic;text-align:center;padding:2rem">Be the first to leave a wish ✦</p>';
+    return;
+  }
+  container.innerHTML = list.map(w => `
+    <div class="wish-card">
+      <div class="wish-author">${escHtml(w.author || w.name || 'Anonymous')}</div>
+      <div class="wish-text">${escHtml(w.message || w.text || '')}</div>
+      <div class="wish-date">${formatDate(w.created_at || w.date)}</div>
+    </div>
+  `).join('');
+}
+ 
+async function submitWish() {
+  const input = document.getElementById('wish-input');
+  const text = input.value.trim();
+  if (!text) { showNotif('Please write a message first'); return; }
+  const wish = {
+    author: currentUser?.name || 'Anonymous',
+    message: text,
+    couple_id: currentCouple,
+    created_at: new Date().toISOString(),
+    date: new Date().toISOString()
+  };
+  if (supabase) {
+    try {
+      const { error } = await supabase.from('wishes').insert([wish]);
+      if (error) throw error;
+    } catch(e) { showNotif('Saved locally (configure Supabase for full persistence)'); }
+  }
+  if (!wishes[currentCouple]) wishes[currentCouple] = [];
+  wishes[currentCouple].unshift(wish);
+  saveLocalData();
+  input.value = '';
+  const list = document.getElementById('wishes-list');
+  renderWishes(wishes[currentCouple], list);
+  showNotif('Your wish has been sent ❤');
+}
+ 
+// ===== ADMIN =====
+function setAdminCouple(type, id, btn) {
+  if (type === 'media') {
+    adminMediaCouple = id;
+    document.querySelectorAll('#media-couple-select button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('media-thumbs-1').style.display = id === 1 ? 'grid' : 'none';
+    document.getElementById('media-thumbs-2').style.display = id === 2 ? 'grid' : 'none';
+  } else {
+    adminMusicCouple = id;
+    document.querySelectorAll('#music-couple-select button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('song-list-1').style.display = id === 1 ? 'flex' : 'none';
+    document.getElementById('song-list-2').style.display = id === 2 ? 'flex' : 'none';
+  }
+}
+ 
+function handleMediaUpload(event) {
+  const files = Array.from(event.target.files);
+  files.forEach(file => {
+    const url = URL.createObjectURL(file);
+    const isVideo = file.type.startsWith('video/');
+    const item = { url, type: isVideo ? 'video' : 'image', name: file.name, local: true };
+    if (!media[adminMediaCouple]) media[adminMediaCouple] = [];
+    media[adminMediaCouple].push(item);
+  });
+  saveLocalData();
+  renderAdminThumbs();
+  showNotif(files.length + ' file(s) uploaded locally ✓');
+  event.target.value = '';
+}
+ 
+function handleMusicUpload(event) {
+  const files = Array.from(event.target.files);
+  files.forEach(file => {
+    const url = URL.createObjectURL(file);
+    const item = { url, name: file.name.replace(/\.[^.]+$/, ''), local: true };
+    if (!songs[adminMusicCouple]) songs[adminMusicCouple] = [];
+    songs[adminMusicCouple].push(item);
+  });
+  saveLocalData();
+  renderSongLists();
+  showNotif(files.length + ' song(s) added ✓');
+  event.target.value = '';
+}
+ 
+function renderAdminThumbs() {
+  [1, 2].forEach(id => {
+    const container = document.getElementById('media-thumbs-' + id);
+    if (!container) return;
+    const m = media[id] || [];
+    container.innerHTML = m.map((item, idx) => `
+      <div class="media-thumb">
+        <img src="${item.url}" alt="">
+        <button class="thumb-del" onclick="deleteMedia(${id},${idx})">✕</button>
+      </div>
+    `).join('');
+  });
+}
+ 
+function deleteMedia(coupleId, idx) {
+  media[coupleId].splice(idx, 1);
+  saveLocalData();
+  renderAdminThumbs();
+  showNotif('Media removed');
+}
+ 
+function renderSongLists() {
+  [1, 2].forEach(id => {
+    const container = document.getElementById('song-list-' + id);
+    if (!container) return;
+    const s = songs[id] || [];
+    if (s.length === 0) {
+      container.innerHTML = '<p style="color:var(--text-light);font-size:0.8rem;font-style:italic">No songs uploaded yet</p>';
+      return;
+    }
+    container.innerHTML = s.map((song, idx) => `
+      <div class="song-item">
+        <button class="play-song" onclick="previewSong('${song.url}')">▶</button>
+        <span class="song-name-item">${escHtml(song.name)}</span>
+        <button class="del-song" onclick="deleteSong(${id},${idx})">✕</button>
+      </div>
+    `).join('');
+  });
+}
+ 
+function previewSong(url) {
+  const a = document.getElementById('bg-audio');
+  a.src = url;
+  a.volume = 0.4;
+  a.play();
+}
+ 
+function deleteSong(coupleId, idx) {
+  songs[coupleId].splice(idx, 1);
+  saveLocalData();
+  renderSongLists();
+  showNotif('Song removed');
+}
+ 
+function loadAdminWishes(coupleId, btn) {
+  if (btn) {
+    btn.closest('.admin-couple-select').querySelectorAll('button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+  const container = document.getElementById('admin-wishes-list');
+  const w = wishes[coupleId] || [];
+  if (w.length === 0) {
+    container.innerHTML = '<p style="color:var(--text-light);font-size:0.85rem;font-style:italic">No wishes yet</p>';
+    return;
+  }
+  container.innerHTML = w.map((wish, idx) => `
+    <div class="admin-wish-item">
+      <div style="flex:1">
+        <strong style="color:var(--warm-amber);font-size:0.8rem">${escHtml(wish.author || wish.name || 'Anonymous')}</strong>
+        <p style="color:var(--blush);margin-top:0.2rem">${escHtml(wish.message || wish.text || '')}</p>
+      </div>
+      <button class="wish-del" onclick="deleteWish(${coupleId},${idx})">✕</button>
+    </div>
+  `).join('');
+}
+ 
+function deleteWish(coupleId, idx) {
+  wishes[coupleId].splice(idx, 1);
+  saveLocalData();
+  loadAdminWishes(coupleId, null);
+  showNotif('Wish deleted');
+}
+ 
+function saveSupabaseConfig() {
+  const url = document.getElementById('sb-url').value.trim();
+  const key = document.getElementById('sb-key').value.trim();
+  if (!url || !key) { document.getElementById('sb-status').textContent = 'Please enter both URL and key'; return; }
+  localStorage.setItem('sb_url', url);
+  localStorage.setItem('sb_key', key);
+  initSupabase();
+  document.getElementById('sb-status').textContent = supabase ? '✓ Connected to Supabase successfully' : '⚠ Could not connect — check your credentials';
+}
+ 
+// ===== UTILS =====
+function showNotif(msg) {
+  const n = document.getElementById('notification');
+  n.textContent = msg;
+  n.classList.add('show');
+  setTimeout(() => n.classList.remove('show'), 3000);
+}
+ 
+function escHtml(str) {
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+ 
+function formatDate(d) {
+  if (!d) return '';
+  try { return new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }); }
+  catch { return ''; }
+}
+ 
+function initIntersectionObserver() {
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+  }, { threshold: 0.1 });
+  document.querySelectorAll('.fade-in').forEach(el => obs.observe(el));
+}
+</script>
+ 
+</body>
+</html>
+ 
